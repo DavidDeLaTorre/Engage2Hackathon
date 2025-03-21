@@ -1,0 +1,25 @@
+# Ignored files & folders
+# Add/remove as required
+
+# IDE directories
+.idea
+.vs
+
+# Python virtual environment & cache
+__pycache__/
+.venv/
+venv/
+
+# Icarus symlink
+/icarus
+
+# Output directories
+/out*
+
+# Releases
+/releases/*
+
+# Placeholder files
+!/src/PUT_YOUR_CODE_HERE
+!/config/PUT_YOUR_CONFIGS_HERE
+!/releases/PUT_YOUR_RELEASES_HERE
