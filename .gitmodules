@@ -1,0 +1,3 @@
+[submodule "pyModeS"]
+	path = pyModeS
+	url = https://github.com/junzis/pyModeS.git
