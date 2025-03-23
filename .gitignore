@@ -23,3 +23,7 @@ venv/
 !/src/PUT_YOUR_CODE_HERE
 !/config/PUT_YOUR_CONFIGS_HERE
 !/releases/PUT_YOUR_RELEASES_HERE
+
+# Data files
+/data/*
+!/data/*.sh
