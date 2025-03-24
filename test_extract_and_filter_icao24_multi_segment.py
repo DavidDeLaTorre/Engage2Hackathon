@@ -21,8 +21,10 @@ Usage:
 
 import sys
 
+from FAP_positions import FAP_position
 from tools_export import export_trajectories_to_csv, export_trajectories_to_kml
-from tools_filter import identify_segments, sort_dataframe, filter_dataframe_by_bounds, filter_dataframe_by_altitude
+from tools_filter import identify_segments, sort_dataframe, filter_dataframe_by_bounds, filter_dataframe_by_altitude, \
+    identify_landing_runway
 from tools_import import load_and_process_parquet_files
 
 
@@ -65,6 +67,8 @@ def main():
     df = filter_dataframe_by_bounds(df, min_lat, max_lat, min_lon, max_lon)
     min_alt, max_alt = [-1000, 10000]  # [ft]
     df = filter_dataframe_by_altitude(df, min_alt, max_alt)
+
+    df = identify_landing_runway(FAP_position, df)
 
     # Save the filtered DataFrame to CSV
     export_trajectories_to_csv(df, output_csv)
