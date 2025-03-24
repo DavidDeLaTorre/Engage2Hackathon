@@ -162,7 +162,7 @@ def main():
     plot_delta_time_pdf_by_runway(normal_basic_info_df)
 
     # Extract the training CSV
-    df_training_subset = basic_info_df[
+    df_training_subset = normal_basic_info_df[
         ['icao24', 'runway_fap', 'ts_fap', 'ts_thr', 'delta_time', 'distance_fap_to_thr']
     ]
 
