@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 
 import csv
+from tools_prob import get_time
 
-
-def get_time(runway: str) -> float:
-    if runway == "32L":
-        return float(32)
-    elif runway == "32R":
-        return float(32/2)
-    elif runway == "18L":
-        return float(18)
-    elif runway == "18R":
-        return float(18/2)
-    else:
-        return float(0)
+# def get_time(runway: str) -> float:
+#     if runway == "32L":
+#         return float(32)
+#     elif runway == "32R":
+#         return float(32/2)
+#     elif runway == "18L":
+#         return float(18)
+#     elif runway == "18R":
+#         return float(18/2)
+#     else:
+#         return float(0)
 
 def get_time_full(scenario_file: str, icao24_code: str, runway: str) -> float:
     if runway == "32L":
