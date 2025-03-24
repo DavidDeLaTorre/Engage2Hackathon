@@ -19,24 +19,19 @@ from tools_export import export_trajectories_to_csv, export_trajectories_to_kml
 
 
 def main():
-    # Ensure that the correct number of arguments are provided.
-    if len(sys.argv) != 4:
-        input_file = "data/engage-hackathon-2025/year=2024/month=11/day=16/hour=13/"
-        input_file += "9e6479c5cdd0497684fe6d961b61f53d.snappy.parquet"
-        input_file = "data/engage-hackathon-2025/year=2024/month=11/day=16/hour=12/"
-        input_file += "1225667186084f958614500e99a47e92.snappy.parquet"
-        icao24 = "01024c"
-        output_csv = "output/01024c.csv"
-        output_kml = "output/01024c.kml"
-    else:  # Unpack command line arguments
-        input_file = sys.argv[1]
-        icao24 = sys.argv[2]
-        output_csv = sys.argv[3]
-        output_kml = sys.argv[3]
+
+    # Input variables
+    input_file1 = "data/engage-hackathon-2025/year=2024/month=11/day=16/hour=13/"
+    input_file1 += "9e6479c5cdd0497684fe6d961b61f53d.snappy.parquet"
+    input_file2 = "data/engage-hackathon-2025/year=2024/month=11/day=16/hour=12/"
+    input_file2 += "1225667186084f958614500e99a47e92.snappy.parquet"
+    icao24 = "01024c"
+    output_csv = "output/01024c.csv"
+    output_kml = "output/01024c.kml"
 
     # Process the ADS-B data.
     filtered_df = load_and_process_parquet_files(
-        file_list=[input_file],
+        file_list=[input_file1, input_file2],
         icao24_list=[icao24],
         columns_to_clean=['lat_deg', 'lon_deg'],
         columns_to_extract=['df', 'icao24', 'ts', 'altitude', 'lat_deg', 'lon_deg']

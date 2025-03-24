@@ -188,8 +188,8 @@ def identify_segments(df, time_gap_threshold=3600):
     # Ensure the DataFrame is sorted by timestamp
     df = df.sort_values('ts').reset_index(drop=True)
 
-    # Compute the time difference between consecutive rows.
-    df['time_gap'] = df['ts'].diff().fillna(0)
+    # Compute the time difference between consecutive rows [seconds]
+    df['time_gap'] = df['ts'].diff().fillna(0) / 1000
 
     # Create a new segment whenever the time gap exceeds the threshold.
     df['segment'] = (df['time_gap'] > time_gap_threshold).cumsum()
