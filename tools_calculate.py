@@ -142,7 +142,7 @@ def plot_delta_time_pdf_by_runway(basic_info_df):
         plt.show()
 
 def find_outliers(basic_info_df):
-    for runway, runway_df in basic_info_df.groupby('nearest_runway'):
+    for runway, runway_df in basic_info_df.groupby('runway_fap'):
         outliers = runway_df[runway_df['delta_time'] < 165]
         #date_str = datetime.datetime.fromtimestamp(epoch_time).strftime('%Y-%m-%d %H:%M:%S')
         print(runway, len(outliers))
