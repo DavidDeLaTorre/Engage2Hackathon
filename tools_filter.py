@@ -1,3 +1,4 @@
+import datetime
 from typing import List, Optional
 
 import numpy as np
@@ -283,13 +284,35 @@ def identify_landing_runway(df):
     grouped = df.groupby(['icao24', 'segment'])
 
     for (icao24, segment), group_df in grouped:
+
+        # Get a representative timestamp from the group (using the first row)
+        rep_ts = group_df['ts'].iloc[0]
+        rep_date = datetime.datetime.utcfromtimestamp(rep_ts / 1000).strftime('%Y-%m-%d')
+
         # Find the nearest point to the FAP position and to the threshold position.
         nearest_fap = find_nearest_point(FAP_position, group_df)
         nearest_thr = find_nearest_point(threshold_position, group_df)
 
+        # Ensure that the runways are the same
+        if nearest_fap['runway'] != nearest_thr['runway']:
+            print(f'  icao24 {icao24} at ts {rep_ts} ({rep_date}): runways do not match: '
+                  f'{nearest_fap["runway"]} != {nearest_thr["runway"]}')
+            continue
+
+        # Ensure that the found points are "close enough" to the FAP
+        if nearest_fap['distance'] > 2000:  # [meters]
+            print(f'  icao24 {icao24} at ts {rep_ts} ({rep_date}): FAP distance too large: {nearest_fap["distance"]}')
+            continue
+
+        # Ensure that the found points are "close enough" to the THR
+        if nearest_thr['distance'] > 2000:  # [meters]
+            print(f'  icao24 {icao24} at ts {rep_ts} ({rep_date}): THR distance too large: {nearest_thr["distance"]}')
+            continue
+
         # Augment the group's dataframe with runway and index/timestamp info
         group_df = group_df.copy()
-        group_df['nearest_runway'] = nearest_fap['runway']
+        group_df['runway_fap'] = nearest_fap['runway']
+        group_df['runway_thr'] = nearest_thr['runway']
         group_df['idx_fap'] = nearest_fap['index']
         group_df['idx_thr'] = nearest_thr['index']
         group_df['ts_fap'] = nearest_fap['ts']
@@ -313,7 +336,7 @@ def identify_landing_runway(df):
         # Build the basic info dictionary for this icao24 segment
         basic_info = {
             'icao24': icao24,
-            'nearest_runway': nearest_fap['runway'],
+            'runway_fap': nearest_fap['runway'],
             'idx_fap': nearest_fap['index'],
             'idx_thr': nearest_thr['index'],
             'ts_fap': nearest_fap['ts'],

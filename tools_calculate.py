@@ -129,7 +129,7 @@ def plot_delta_time_pdf(segment_df: pd.DataFrame, bins: int = 50) -> None:
 # Plot delta_time PDF for each runway
 def plot_delta_time_pdf_by_runway(basic_info_df):
     # Group the basic_info_df by runway
-    for runway, runway_df in basic_info_df.groupby('nearest_runway'):
+    for runway, runway_df in basic_info_df.groupby('runway_fap'):
         plt.figure()
         # Plot histogram as a PDF (normalized histogram)
         plt.hist(runway_df['delta_time'], bins=20, density=True, alpha=0.7)
