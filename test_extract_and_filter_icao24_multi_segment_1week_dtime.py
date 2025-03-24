@@ -45,6 +45,7 @@ def main():
     day = 16
     output_csv = 'output/test_1week.csv'
     output_kml = 'output/test_1week.kml'
+    output_kml2 = 'output/test_1week_segments.kml'
 
     # Define a cache file path (adjust folder as needed)
     cache_file = f"output/test_1week_cached_df_{year}_{month:02d}_{day:02d}.pkl"
@@ -113,10 +114,17 @@ def main():
         print(f"Saving processed dataframe to cache file2 {cache_file2} ...")
         df.to_pickle(cache_file2)
 
+    # Identify and extract landings, with caching
+    cache_file3 = f"output/test_1week_cached_landing_{year}_{month:02d}_{day:02d}.pkl"
+    if os.path.exists(cache_file3):
+        print(f"Loading cached landing runway results from {cache_file3} ...")
+        df_with_runway, basic_info_df = pd.read_pickle(cache_file3)
+    else:
+        print("Cache file for landing runway not found. Processing landing runway results ...")
+        df_with_runway, basic_info_df = identify_landing_runway(df)
 
-    # Identify and extract landings
-    print("Extract landings ...")
-    df_with_runway, basic_info_df = identify_landing_runway(df)
+        print(f"Saving landing runway results to cache file {cache_file3} ...")
+        pd.to_pickle((df_with_runway, basic_info_df), cache_file3)
 
     # Define the normal range thresholds (in seconds)
     min_delta = 100
@@ -131,7 +139,7 @@ def main():
 
     # Compute statistics for each runway by grouping basic_info_df on 'nearest_runway'
     stats_by_runway = {}
-    for runway, runway_df in normal_basic_info_df.groupby('nearest_runway'):
+    for runway, runway_df in normal_basic_info_df.groupby('runway_fap'):
         stats_by_runway[runway] = compute_delta_time_statistics(runway_df)
         print(f"Statistics for Runway {runway}:")
         for stat_name, value in stats_by_runway[runway].items():
@@ -150,9 +158,12 @@ def main():
     plot_delta_time_pdf_by_runway(normal_basic_info_df)
 
     # Save the filtered DataFrame to CSV & KML
-    print("export_trajectories_to_xxx ...")
+    print("export_trajectories_to_csv all ...")
     export_trajectories_to_csv(df, output_csv)
+    print("export_trajectories_to_kml all ...")
     export_trajectories_to_kml(df, output_kml)
+    print("export_trajectories_to_kml segments ...")
+    export_trajectories_to_kml(normal_df_with_runway, output_kml2)
 
 
 if __name__ == '__main__':
