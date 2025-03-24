@@ -43,12 +43,11 @@ def main():
     year = 2024
     month = 11
     day = 16
+    delta_days = 7
     output_name = 'output/test_1week'
 
-    # Define a cache file path (adjust folder as needed)
-    cache_file = f"output/test_1week_cached_df_{year}_{month:02d}_{day:02d}.pkl"
-
-    # If the cache file exists, load the dataframe from it.
+    # Read dataframe, with caching
+    cache_file = f"{output_name}_cached_df_{year}_{month:02d}_{day:02d}.pkl"
     if os.path.exists(cache_file):
         print(f"Loading cached dataframe from {cache_file} ...")
         df = pd.read_pickle(cache_file)
@@ -58,7 +57,7 @@ def main():
         # For one entire day, process all hours from 0 to 23
         df = load_parquet_files(
             year, month, day, 0,
-            year, month, day+7, 23,
+            year, month, day+delta_days, 23,
             base_path="data/engage-hackathon-2025")
 
         if df.empty:
@@ -69,11 +68,8 @@ def main():
         print(f"Saving processed dataframe to cache file {cache_file} ...")
         df.to_pickle(cache_file)
 
-
-    # Define a cache file path (adjust folder as needed)
-    cache_file2 = f"output/test_1week_cached2_df_{year}_{month:02d}_{day:02d}.pkl"
-
-    # If the cache file exists, load the dataframe from it.
+    # Clean-up dataframe, with caching
+    cache_file2 = f"{output_name}_cached2_df_{year}_{month:02d}_{day:02d}.pkl"
     if os.path.exists(cache_file2):
         print(f"Loading cached dataframe2 from {cache_file2} ...")
         df = pd.read_pickle(cache_file2)
@@ -113,7 +109,7 @@ def main():
         df.to_pickle(cache_file2)
 
     # Identify and extract landings, with caching
-    cache_file3 = f"output/test_1week_cached_landing_{year}_{month:02d}_{day:02d}.pkl"
+    cache_file3 = f"{output_name}_cached_landing_{year}_{month:02d}_{day:02d}.pkl"
     if os.path.exists(cache_file3):
         print(f"Loading cached landing runway results from {cache_file3} ...")
         df_with_runway, basic_info_df, df_segments_ils = pd.read_pickle(cache_file3)
@@ -124,7 +120,7 @@ def main():
         print(f"Saving landing runway results to cache file {cache_file3} ...")
         pd.to_pickle((df_with_runway, basic_info_df, df_segments_ils), cache_file3)
 
-    # Define the normal range thresholds (in seconds)
+    # Define the normal time range thresholds (in seconds)
     min_delta = 100
     max_delta = 500
 
