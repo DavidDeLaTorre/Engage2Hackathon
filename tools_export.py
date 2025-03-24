@@ -50,57 +50,88 @@ def export_trajectories_to_csv(df: pd.DataFrame, output_file: str):
 
 def export_trajectories_to_kml(df: pd.DataFrame, output_file: str):
     """
-    Exports the flight trajectories to a KML file, splitting each flight's trajectory
-    into separate segments based on a precomputed "segment" column. Each segment is exported
-    as an individual Placemark.
+    Exports the flight trajectories to a KML file.
 
-    The KML file will contain one Placemark per segment (grouped by "icao24" and "segment"),
-    with a LineString representing the trajectory using the fields: "icao24", "altitude",
-    "lat_deg", "lon_deg". If the DataFrame contains a "trajectory" column (e.g., 'landing',
-    'departing', or 'level'), it will be included in the placemark name.
+    If the DataFrame contains a "segment" column, the trajectories are split by segment,
+    with each segment exported as its own Placemark (grouped by "icao24" and "segment").
+    If the DataFrame does not contain "segment", all points for each aircraft (grouped by "icao24")
+    are exported as a single Placemark.
+
+    The KML file uses the columns:
+      - "icao24", "altitude", "lat_deg", "lon_deg", and optionally "ts" for sorting.
+      - If available, a "trajectory" column (e.g., 'landing', 'departing', 'level') is used in the placemark name.
 
     Args:
-        df (pd.DataFrame): The DataFrame containing the flight data. Must include the columns:
-                           'icao24', 'altitude', 'lat_deg', 'lon_deg', and 'segment'. Optionally,
-                           it may include 'ts' for sorting and 'trajectory' for classification.
+        df (pd.DataFrame): DataFrame containing the flight data.
         output_file (str): The file path for the output KML file.
     """
-    # Ensure the necessary columns exist.
-    required_columns = {'icao24', 'altitude', 'lat_deg', 'lon_deg', 'segment'}
+    # Validate required columns
+    required_columns = {'icao24', 'altitude', 'lat_deg', 'lon_deg'}
     if not required_columns.issubset(df.columns):
         print("Error: The DataFrame does not contain all required columns for KML export.")
         sys.exit(1)
 
-    # If a timestamp is available, sort by it. Otherwise, sort by segment.
-    sort_column = 'ts' if 'ts' in df.columns else 'segment'
-    df = df.sort_values(sort_column)
+    # Check if the DataFrame has segmentation information.
+    has_segments = 'segment' in df.columns
 
-    # Group the data by 'icao24' and 'segment' so that each segment gets its own placemark.
-    grouped = df.groupby(['icao24', 'segment'])
+    # Use 'ts' (if available) for sorting; otherwise use 'segment' (if available)
+    if 'ts' in df.columns:
+        df = df.sort_values('ts')
+    elif has_segments:
+        df = df.sort_values('segment')
 
-    # Count the total number of segments to generate colors accordingly.
-    num_segments = len(grouped)
-    colors = generate_kml_colors(num_segments)  # generate_kml_colors should produce valid KML colors.
-    line_width = 4  # Arbitrary width for all lines
+    # Define grouping:
+    # If segments exist, group by both 'icao24' and 'segment'; otherwise, group by 'icao24' only.
+    if has_segments:
+        group_keys = ['icao24', 'segment']
+    else:
+        group_keys = ['icao24']
 
-    # Start building the KML content.
+    grouped = df.groupby(group_keys)
+
+    # Count the total number of groups to generate colors.
+    num_groups = len(grouped)
+    colors = generate_kml_colors(num_groups)  # This helper function must return valid KML color strings.
+    line_width = 4  # Arbitrary line width
+
+    # Start building KML content.
     kml_content = """<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
 """
-    for idx, ((aircraft_id, segment_id), group) in enumerate(grouped):
-        # Cycle through colors if necessary.
-        color = colors[idx % len(colors)]
-        # Sort each segment by timestamp if available.
+    for idx, group_keys_val in enumerate(grouped.groups):
+        # For single-key grouping, group_keys_val is just the aircraft id.
+        # For two-key grouping, it is a tuple (icao24, segment).
+        if has_segments:
+            aircraft_id, segment_id = group_keys_val
+        else:
+            aircraft_id = group_keys_val
+            segment_id = None
+
+        group = grouped.get_group(group_keys_val)
+
+        # If a timestamp is available, sort the group.
         if 'ts' in group.columns:
             group = group.sort_values('ts')
 
-        # If trajectory classification is available, include it.
-        traj_class = group['trajectory'].iloc[0] if 'trajectory' in group.columns else "N/A"
+        # Retrieve trajectory classification if available.
+        if 'trajectory' in group.columns:
+            traj_class = group['trajectory'].iloc[0]
+        else:
+            traj_class = "N/A"
 
-        placemark = f"""    <!-- Placemark for flight {aircraft_id}, segment {segment_id} -->
+        # Build the placemark name based on available keys.
+        if segment_id is not None:
+            placemark_name = f"Flight {aircraft_id} - Segment {segment_id} ({traj_class})"
+        else:
+            placemark_name = f"Flight {aircraft_id} ({traj_class})"
+
+        # Select a color (cycle if necessary).
+        color = colors[idx % len(colors)]
+
+        placemark = f"""    <!-- Placemark for {placemark_name} -->
     <Placemark>
-      <name>Flight {aircraft_id} - Segment {segment_id} ({traj_class})</name>
+      <name>{placemark_name}</name>
       <Style>
         <LineStyle>
           <color>{color}</color>
@@ -111,7 +142,7 @@ def export_trajectories_to_kml(df: pd.DataFrame, output_file: str):
         <!-- Coordinates: longitude,latitude,altitude -->
         <coordinates>
 """
-        # Append coordinates (KML requires lon,lat,alt).
+        # Append the coordinates (KML expects lon,lat,alt).
         for _, row in group.iterrows():
             placemark += f"          {row['lon_deg']},{row['lat_deg']},{row['altitude']}\n"
         placemark += """        </coordinates>
@@ -120,7 +151,7 @@ def export_trajectories_to_kml(df: pd.DataFrame, output_file: str):
 """
         kml_content += placemark
 
-    # Close the Document and KML tags.
+    # Close KML tags.
     kml_content += """  </Document>
 </kml>
 """
