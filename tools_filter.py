@@ -274,7 +274,7 @@ def identify_landing_runway(FAP_position, df):
     # Group by icao24 and segment
     grouped = df.groupby(['icao24', 'segment'])
     for (icao24, segment), group_df in grouped:
-        nearest = find_nearest_FAP_point(FAP_position, group_df)
+        nearest = find_nearest_point(FAP_position, group_df)
 
         # Assign runway info to the group
         group_df = group_df.copy()
