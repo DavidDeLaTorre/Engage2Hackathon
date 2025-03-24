@@ -3,6 +3,9 @@ from typing import List, Optional
 import numpy as np
 import pandas as pd
 
+from math import radians, sin, cos, sqrt, atan2
+
+from FAP_positions import FAP_position
 
 def sort_dataframe(df: pd.DataFrame, fields: Optional[List[str]] = None) -> pd.DataFrame:
     """
@@ -222,3 +225,63 @@ def identify_segments(df, time_gap_threshold=3600):
     segment_summary = pd.concat(segment_summary_list).reset_index(drop=True)
 
     return annotated_df, segment_summary
+
+def haversine(lat1, lon1, lat2, lon2):
+    # Radius of Earth in meters
+    R = 6371000
+    phi1, phi2 = radians(lat1), radians(lat2)
+    dphi = radians(lat2 - lat1)
+    dlambda = radians(lon2 - lon1)
+
+    a = sin(dphi/2)**2 + cos(phi1) * cos(phi2) * sin(dlambda/2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+    return R * c
+
+def find_nearest_point(baseline_position: dict, filtered_df: pd.DataFrame):
+    # Make sure filtered_df has numeric lat/lon
+    df = filtered_df.copy()
+    df = df.dropna(subset=['lat_deg', 'lon_deg'])
+
+    nearest = {
+        'distance': float('inf'),
+        'runway': None,
+        'point': None,
+        'index': None
+    }
+
+    for runway, point in baseline_position.items():
+        # Compute haversine distance from all points to this FAP
+        distances = df.apply(
+            lambda row: haversine(row['lat_deg'], row['lon_deg'], point.latitude, point.longitude),
+            axis=1
+        )
+
+        min_idx = distances.idxmin()
+        min_distance = distances[min_idx]
+
+        if min_distance < nearest['distance']:
+            nearest['distance'] = min_distance
+            nearest['runway'] = runway
+            nearest['point'] = df.loc[min_idx]
+            nearest['index'] = min_idx
+
+    return nearest
+
+def identify_landing_runway(FAP_position, df):
+        df = df.copy()
+
+        # Group by each unique trajectory (e.g. flight segment)
+        grouped = df.groupby('segment')
+
+        # Create an output column
+        df['assigned_runway'] = None
+
+        for traj_id, traj_df in grouped:
+            # Use your existing function
+            nearest = find_nearest_FAP_point(FAP_position, traj_df)
+            assigned_runway = nearest['runway']
+
+            # Set the same runway for all rows in this trajectory
+            df.loc[traj_df.index, 'assigned_runway'] = assigned_runway
+
+        return df
