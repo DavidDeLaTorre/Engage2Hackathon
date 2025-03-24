@@ -89,19 +89,28 @@ def plot_delta_time_pdf(segment_df: pd.DataFrame, bins: int = 50) -> None:
       segment_df (pd.DataFrame): A DataFrame containing a 'delta_time' column.
       bins (int): The number of bins to use in the histogram.
     """
+
+    # Extract times
     delta_times = segment_df['delta_time']
 
+    # Min max times for x-axis
+    min_time = delta_times.min()
+    max_time = min(500, delta_times.max())
+
+    # Cut-out delta-times
+    delta_times = delta_times[delta_times < max_time]
+
+    # Figure
     plt.figure(figsize=(10, 6))
 
     # Plot normalized histogram (density=True makes it a PDF)
     counts, bin_edges, _ = plt.hist(delta_times, bins=bins, density=True, alpha=0.6, label='Histogram')
 
+
     # Optionally, overlay a kernel density estimate (if scipy is available)
     try:
         from scipy.stats import gaussian_kde
         kde = gaussian_kde(delta_times)
-        min_time = delta_times.min()
-        max_time = min(500, delta_times.max())
         xs = np.linspace(min_time, max_time, 200)
         plt.plot(xs, kde(xs), 'r-', label='KDE')
     except ImportError:
@@ -111,6 +120,7 @@ def plot_delta_time_pdf(segment_df: pd.DataFrame, bins: int = 50) -> None:
     plt.xlabel('Delta Time (ms)')
     plt.ylabel('Probability Density')
     plt.title('PDF of Delta Times')
+    plt.xlim(min_time, max_time)
     plt.legend()
     plt.grid(True)
     plt.show()
