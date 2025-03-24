@@ -237,7 +237,7 @@ def haversine(lat1, lon1, lat2, lon2):
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return R * c
 
-def find_nearest_FAP_point(FAP_position, filtered_df):
+def find_nearest_point(baseline_position: dict, filtered_df: pd.DataFrame):
     # Make sure filtered_df has numeric lat/lon
     df = filtered_df.copy()
     df = df.dropna(subset=['lat_deg', 'lon_deg'])
@@ -249,10 +249,10 @@ def find_nearest_FAP_point(FAP_position, filtered_df):
         'index': None
     }
 
-    for runway, fap in FAP_position.items():
+    for runway, point in baseline_position.items():
         # Compute haversine distance from all points to this FAP
         distances = df.apply(
-            lambda row: haversine(row['lat_deg'], row['lon_deg'], fap.latitude, fap.longitude),
+            lambda row: haversine(row['lat_deg'], row['lon_deg'], point.latitude, point.longitude),
             axis=1
         )
 
