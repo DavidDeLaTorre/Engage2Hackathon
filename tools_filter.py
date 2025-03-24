@@ -268,20 +268,20 @@ def find_nearest_FAP_point(FAP_position, filtered_df):
     return nearest
 
 def identify_landing_runway(FAP_position, df):
-        df = df.copy()
+    results = []
+    df = df[~df['trajectory'].isin(['departing', 'level'])]
 
-        # Group by each unique trajectory (e.g. flight segment)
-        grouped = df.groupby('segment')
+    # Group by icao24 and segment
+    grouped = df.groupby(['icao24', 'segment'])
+    for (icao24, segment), group_df in grouped:
+        nearest = find_nearest_FAP_point(FAP_position, group_df)
 
-        # Create an output column
-        df['assigned_runway'] = None
+        # Assign runway info to the group
+        group_df = group_df.copy()
+        group_df['nearest_runway'] = nearest['runway']
 
-        for traj_id, traj_df in grouped:
-            # Use your existing function
-            nearest = find_nearest_FAP_point(FAP_position, traj_df)
-            assigned_runway = nearest['runway']
+        results.append(group_df)
 
-            # Set the same runway for all rows in this trajectory
-            df.loc[traj_df.index, 'assigned_runway'] = assigned_runway
-
-        return df
+    # Concatenate all the groups back together
+    df_with_runway = pd.concat(results).reset_index(drop=True)
+    return df_with_runway
