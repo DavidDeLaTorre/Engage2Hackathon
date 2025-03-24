@@ -23,10 +23,13 @@ import sys
 
 import pandas as pd
 
-from tools_calculate import compute_segment_delta_times, compute_delta_time_statistics, plot_delta_time_pdf
+from FAP_positions import FAP_position
+from threshold_positions import threshold_position
+from tools_calculate import compute_segment_delta_times, compute_delta_time_statistics, plot_delta_time_pdf, \
+    plot_delta_time_pdf_by_runway
 from tools_export import export_trajectories_to_csv, export_trajectories_to_kml
 from tools_filter import identify_segments, sort_dataframe, filter_dataframe_by_bounds, filter_dataframe_by_altitude, \
-    clean_dataframe_nulls, extract_adsb_columns
+    clean_dataframe_nulls, extract_adsb_columns, find_nearest_point, identify_landing_runway
 from tools_import import load_and_process_parquet_files, load_parquet_files
 
 
@@ -97,15 +100,28 @@ def main():
     min_alt, max_alt = [-1000, 10000]  # [ft]
     df = filter_dataframe_by_altitude(df, min_alt, max_alt)
 
-    # Extract only the landings
-    print("extract landings ...")
-    df_landings = df[df['trajectory'] == 'landing']
+    # Identify and extract landings
+    print("Extract landings ...")
+    df_with_runway, basic_info_df = identify_landing_runway(df)
 
     # Extract the delta_time for each icao24 and landing and segment
-    # Fields: 'icao24', 'altitude', 'lat_deg', 'lon_deg', 'ts', 'segment', 'trajectory'
-    df_times = compute_segment_delta_times(df_landings)
-    stats = compute_delta_time_statistics(df_times)
+    df_times = compute_segment_delta_times(df_with_runway)
     plot_delta_time_pdf(df_times)
+
+    # Compute statistics
+    stats = compute_delta_time_statistics(basic_info_df)
+
+    # Compute statistics for each runway by grouping basic_info_df on 'nearest_runway'
+    stats_by_runway = {}
+    for runway, runway_df in basic_info_df.groupby('nearest_runway'):
+        stats_by_runway[runway] = compute_delta_time_statistics(runway_df)
+        print(f"Statistics for Runway {runway}:")
+        for stat_name, value in stats_by_runway[runway].items():
+            print(f"  {stat_name}: {value}")
+        print()
+
+    # Call the plotting function
+    plot_delta_time_pdf_by_runway(basic_info_df)
 
     # Save the filtered DataFrame to CSV & KML
     print("export_trajectories_to_xxx ...")

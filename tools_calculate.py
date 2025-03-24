@@ -1,59 +1,59 @@
 import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 def compute_segment_delta_times(df: pd.DataFrame) -> pd.DataFrame:
     """
     Processes an ADS-B trajectory dataframe and computes the elapsed time (delta_time)
-    for each flight segment, returning a new DataFrame with the following fields:
+    for each flight segment based on the sub-segment defined by the FAP and threshold.
+    Returns a new DataFrame with the following fields:
       - icao24 (string)
       - segment (integer identifier)
       - trajectory (string: landing, departing, level)
-      - delta_time (in milliseconds; difference between first and last 'ts' in the segment)
-      - initial_idx (index of the first row in the original df for this segment)
-      - final_idx (index of the last row in the original df for this segment)
+      - delta_time (in seconds; difference between FAP and threshold timestamps)
+      - initial_idx (index of the FAP row in the original df for this segment)
+      - final_idx (index of the threshold row in the original df for this segment)
+      - sub_segment_count (optional; number of rows in the sub-segment)
 
-    Parameters:
-      df (pd.DataFrame): Input dataframe with at least the following columns:
-                         'icao24', 'ts', 'segment', 'trajectory'.
-
-    Returns:
-      pd.DataFrame: A new DataFrame summarizing the delta time and original index boundaries
-                    for each flight segment.
+    Assumes that the dataframe contains the columns:
+      'icao24', 'ts', 'segment', 'trajectory',
+      'idx_fap', 'idx_thr', 'ts_fap', 'ts_thr'.
     """
-    # List to collect results for each group.
     results = []
 
     # Group by icao24, segment, and trajectory.
     groups = df.groupby(['icao24', 'segment', 'trajectory'])
 
     for (icao24, segment, trajectory), group in groups:
-        # Ensure that the group is sorted by 'ts' (time in milliseconds).
+        # Assuming FAP and threshold info is constant within the group,
+        # retrieve the FAP and threshold index and timestamp.
+        fap_idx = group['idx_fap'].iloc[0]
+        thr_idx = group['idx_thr'].iloc[0]
+        fap_ts = group['ts_fap'].iloc[0]
+        thr_ts = group['ts_thr'].iloc[0]
+
+        # Ensure the group is sorted by timestamp
         group_sorted = group.sort_values('ts')
 
-        # Retrieve the original indexes for the first and last observation in the segment.
-        initial_idx = group_sorted.index[0]
-        final_idx = group_sorted.index[-1]
+        # Extract the sub-segment corresponding to times between FAP and threshold.
+        # (Assumes fap_ts <= thr_ts; if not, adjust accordingly.)
+        sub_segment = group_sorted[(group_sorted['ts'] >= fap_ts) & (group_sorted['ts'] <= thr_ts)]
 
-        # Compute the elapsed time (delta_time) in milliseconds.
-        delta_time = group_sorted['ts'].iloc[-1] - group_sorted['ts'].iloc[0]
+        # Compute the elapsed time (delta_time) in milliseconds, then convert to seconds.
+        delta_time = thr_ts - fap_ts
 
-        # Append the computed info.
         results.append({
             'icao24': icao24,
             'segment': segment,
             'trajectory': trajectory,
-            'delta_time': delta_time / 1000,
-            'initial_idx': initial_idx,
-            'final_idx': final_idx
+            'delta_time': delta_time / 1000,  # convert ms to seconds
+            'initial_idx': fap_idx,
+            'final_idx': thr_idx,
+            'sub_segment_count': len(sub_segment)
         })
 
-    # Return a new DataFrame built from the results list.
     return pd.DataFrame(results)
-
-
-import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
 
 
 def compute_delta_time_statistics(segment_df: pd.DataFrame) -> dict:
@@ -124,3 +124,17 @@ def plot_delta_time_pdf(segment_df: pd.DataFrame, bins: int = 50) -> None:
     plt.legend()
     plt.grid(True)
     plt.show()
+
+
+# Plot delta_time PDF for each runway
+def plot_delta_time_pdf_by_runway(basic_info_df):
+    # Group the basic_info_df by runway
+    for runway, runway_df in basic_info_df.groupby('nearest_runway'):
+        plt.figure()
+        # Plot histogram as a PDF (normalized histogram)
+        plt.hist(runway_df['delta_time'], bins=20, density=True, alpha=0.7)
+        plt.title(f"Delta Time PDF for Runway {runway}")
+        plt.xlabel("Delta Time (seconds)")
+        plt.ylabel("Density")
+        plt.grid(True)
+        plt.show()
