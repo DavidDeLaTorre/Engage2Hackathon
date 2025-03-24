@@ -5,7 +5,7 @@ import glob
 import pandas as pd
 from datetime import datetime, timedelta
 
-from tools_filter import filter_adsb_data, extract_adsb_columns
+from tools_filter import filter_adsb_data, extract_adsb_columns, filter_dataframe_by_icao, clean_dataframe_nulls
 
 
 def generate_dates_list(start_year, start_month, start_day, start_hour,
@@ -131,7 +131,9 @@ def load_and_process_parquet_files(file_list: list, icao24_list: list = None, co
         # Load raw data from the file.
         df_raw = load_adsb_data(file)
         # Filter the data based on provided icao24 identifiers and non-null altitude/lat_deg.
-        df_filtered = filter_adsb_data(df_raw, icao24_list)
+        df_filtered = filter_dataframe_by_icao(df_raw, icao24_list)
+        # Filter the data to remove null altitude/lat_deg.
+        df_filtered = clean_dataframe_nulls(df_filtered, ['altitude', 'lat_deg', 'lon_deg'])
         # Extract the required subset of columns.
         df_extracted = extract_adsb_columns(df_filtered, columns)
         df_list.append(df_extracted)

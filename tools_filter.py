@@ -48,6 +48,51 @@ def extract_adsb_columns(df: pd.DataFrame, columns: list = None) -> pd.DataFrame
     return extracted_df
 
 
+def clean_dataframe_nulls(df: pd.DataFrame, fields: Optional[List[str]] = None) -> pd.DataFrame:
+    """
+    Filter the ADS-B data to remove rows with missing altitude or latitude.
+
+    Args:
+        df (pd.DataFrame): The raw ADS-B data.
+        fields (list, optional): List of fields to remove nulls from.
+            If None, ['lat_deg', 'lon_deg', 'altitude', 'ts'] are processed.
+
+    Returns:
+        pd.DataFrame: The filtered DataFrame.
+    """
+
+    # Default fields to clean-up
+    if fields is None:
+        fields = ['lat_deg', 'lon_deg', 'altitude', 'ts']
+
+    # Clean-up rows with null fields
+    for field in fields:
+        df = df[df[field].notna()]
+        print(f"Rows after filtering by provided icao24 values {fields}: {len(df)}")
+
+    return df
+
+
+def filter_dataframe_by_icao(df: pd.DataFrame, icao24_list: list = None) -> pd.DataFrame:
+    """
+    Filter the ADS-B data by a list of icao24 identifiers.
+
+    Args:
+        df (pd.DataFrame): The raw ADS-B data.
+        icao24_list (list, optional): List of aircraft identifiers to keep.
+            If None, all flights are processed.
+
+    Returns:
+        pd.DataFrame: The filtered DataFrame.
+    """
+    if icao24_list:
+        df = df[df['icao24'].isin(icao24_list)]
+        print(f"Rows after filtering by provided icao24 values {icao24_list}: {len(df)}")
+    else:
+        print("No specific icao24 codes provided. Processing all flights.")
+    return df
+
+
 def filter_dataframe_by_bounds(df, min_lat, max_lat, min_lon, max_lon):
     """
     Filters the given DataFrame to only include rows where:
