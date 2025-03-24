@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import csv
-from tools_prob import get_time
+from tools_prob import get_time, get_time_full
 
 def main():
     # Replace with your actual file path
