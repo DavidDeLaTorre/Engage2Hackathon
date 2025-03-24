@@ -6,7 +6,7 @@ from tools_prob import get_time
 def main():
     # Replace with your actual file path
     file_path = 'engage-hackaton-checkpoint/checkpoint_YourTeamName_option1.csv'
-    output_file = 'output/checkpoint_RAD_option1.csv'
+    output_file = 'results/checkpoint_RAD_option1.csv'
 
     with open(file_path, mode='r', newline='') as infile, open(output_file, mode='w', newline='') as outfile:
 

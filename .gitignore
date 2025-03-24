@@ -15,7 +15,6 @@ venv/
 
 # Output directories
 /out*
-!/output/checkpoint_RAD_option*.csv
 
 # Releases
 /releases/*
