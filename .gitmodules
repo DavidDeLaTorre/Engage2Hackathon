@@ -1,3 +1,6 @@
 [submodule "pyModeS"]
 	path = pyModeS
 	url = https://github.com/junzis/pyModeS.git
+[submodule "engage-hackaton"]
+	path = engage-hackaton
+	url = https://github.com/Innaxis/engage-hackaton.git
