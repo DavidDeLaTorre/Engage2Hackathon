@@ -43,18 +43,20 @@ def main():
         columns_to_extract=['df', 'icao24', 'ts', 'altitude', 'lat_deg', 'lon_deg']
     )
 
-    result = find_nearest_point(baseline_position=FAP_position, filtered_df=filtered_df)
-    print(f"Nearest point is at index {result['index']} near runway {result['runway']}")
-    print(result['point'])
+    result_FAP = find_nearest_point(baseline_position=FAP_position, filtered_df=filtered_df)
+    print("NEAREST FAP")
+    print(f"Nearest point is at index {result_FAP['index']} near runway {result_FAP['runway']}")
+    print(result_FAP['point'])
 
-    # ########
-    # index = filtered_df.loc[result['index']]
-    # FAP_record = filtered_df[index]
-    # print("FAP_record")
-    # print(FAP_record)
+    result_threshold = find_nearest_point(baseline_position=threshold_position, filtered_df=filtered_df)
+    print("NEAREST THRESHOLD")
+    print(f"Nearest point is at index {result_threshold['index']} near runway {result_threshold['runway']}")
+    print(result_threshold['point'])
 
     # Export the trajectory to a KML file.
-    export_trajectories_FAP_predicted_FAP_to_kml(df=filtered_df, output_file=output_kml, FAP_position=FAP_position, nearest_fap_info=result)
+    export_trajectories_FAP_predicted_FAP_to_kml(df=filtered_df, output_file="output/icao24_"+icao24+"_FAP.kml", FAP_position=FAP_position, nearest_fap_info=result_FAP)
+    export_trajectories_FAP_predicted_FAP_to_kml(df=filtered_df, output_file="output/icao24_"+icao24+"_threshold.kml", FAP_position=threshold_position, nearest_fap_info=result_threshold)
+
 
 if __name__ == '__main__':
     main()
