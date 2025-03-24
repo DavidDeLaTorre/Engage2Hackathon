@@ -7,8 +7,10 @@ Usage:
 Example:
     python main_generate_kml.py 2024 11 16 output.kml
 """
-
+import os
 import sys
+
+import pandas as pd
 
 from tools_filter import filter_dataframe_by_bounds, filter_dataframe_by_altitude, sort_dataframe
 from tools_import import load_parquet_files
@@ -26,24 +28,38 @@ def main():
     output_csv = sys.argv[4]
     output_kml = sys.argv[5]
 
-    # For one entire day, process all hours from 0 to 23
-    df = load_parquet_files(
-        year, month, day, 0,
-        year, month, day, 23,
-        base_path="data/engage-hackathon-2025")
+    # Define a cache file path (adjust folder as needed)
+    cache_file = f"output/main_generate_kml_cached_df_{year}_{month:02d}_{day:02d}.pkl"
 
-    if df.empty:
-        print("No data found for the specified day.")
-        sys.exit(1)
+    # If the cache file exists, load the dataframe from it.
+    if os.path.exists(cache_file):
+        print(f"Loading cached dataframe from {cache_file} ...")
+        df = pd.read_pickle(cache_file)
+    else:
+        print("Cache file not found. Processing data ...")
 
-    # Filter dataframe by geographical coordinates around Madrid
-    min_lat, max_lat, min_lon, max_lon = [40.0, 41.0, -4.0, -3.0]  # [deg]
-    df = filter_dataframe_by_bounds(df, min_lat, max_lat, min_lon, max_lon)
-    min_alt, max_alt = [0, 3000]  # [ft]
-    df = filter_dataframe_by_altitude(df, min_alt, max_alt)
+        # For one entire day, process all hours from 0 to 23
+        df = load_parquet_files(
+            year, month, day, 0,
+            year, month, day, 23,
+            base_path="data/engage-hackathon-2025")
 
-    # Sort dataframe by icao24 and time
-    df = sort_dataframe(df)
+        if df.empty:
+            print("No data found for the specified day.")
+            sys.exit(1)
+
+        # Filter dataframe by geographical coordinates around Madrid
+        min_lat, max_lat, min_lon, max_lon = [40.3, 40.8, -3.8, -3.3]  # [deg]
+        df = filter_dataframe_by_bounds(df, min_lat, max_lat, min_lon, max_lon)
+        min_alt, max_alt = [0, 4000]  # [ft]
+        df = filter_dataframe_by_altitude(df, min_alt, max_alt)
+
+        # Sort dataframe by icao24 and time
+        df = sort_dataframe(df)
+
+        # Save the dataframe to cache for future runs
+        print(f"Saving processed dataframe to cache file {cache_file} ...")
+        df.to_pickle(cache_file)
 
     # Export dataframe to CSV
     export_trajectories_to_csv(df, output_csv)
