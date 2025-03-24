@@ -47,9 +47,6 @@ def main():
     # Define a cache file path (adjust folder as needed)
     cache_file = f"output/test_1day_cached_df_{year}_{month:02d}_{day:02d}.pkl"
 
-    # Optional flight identifiers provided as extra command-line arguments.
-    icao24_list = sys.argv[4:] if len(sys.argv) > 4 else None
-
     # If the cache file exists, load the dataframe from it.
     if os.path.exists(cache_file):
         print(f"Loading cached dataframe from {cache_file} ...")
