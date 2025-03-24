@@ -10,7 +10,7 @@ Example:
 
 import sys
 
-from tools_filter import filter_dataframe_by_bounds, filter_dataframe_by_altitude
+from tools_filter import filter_dataframe_by_bounds, filter_dataframe_by_altitude, sort_dataframe
 from tools_import import load_parquet_files
 from tools_export import export_trajectories_to_kml
 
@@ -38,8 +38,11 @@ def main():
     # Filter dataframe by geographical coordinates around Madrid
     min_lat, max_lat, min_lon, max_lon = [40.0, 41.0, -4.0, -3.0]  # [deg]
     df = filter_dataframe_by_bounds(df, min_lat, max_lat, min_lon, max_lon)
-    min_alt, max_alt = [0, 1000]  # [ft]
+    min_alt, max_alt = [0, 3000]  # [ft]
     df = filter_dataframe_by_altitude(df, min_alt, max_alt)
+
+    # Sort dataframe by icao24 and time
+    df = sort_dataframe(df)
 
     # Generate the KML with all flights
     export_trajectories_to_kml(df, output_kml)

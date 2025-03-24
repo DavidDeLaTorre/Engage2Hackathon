@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 import pandas as pd
 
 
@@ -19,6 +21,7 @@ def filter_adsb_data(df: pd.DataFrame, icao24_list: list = None) -> pd.DataFrame
         print("No specific icao24 codes provided. Processing all flights.")
     df = df[df['altitude'].notna()]
     df = df[df['lat_deg'].notna()]
+    df = df[df['lon_deg'].notna()]
     print(f"Rows after filtering out null altitude and lat_deg: {len(df)}")
     return df
 
@@ -85,3 +88,36 @@ def filter_dataframe_by_altitude(df, min_alt, max_alt):
         (df['altitude'] >= min_alt) & (df['altitude'] <= max_alt)
     ]
     return filtered_df
+
+
+def sort_dataframe(df: pd.DataFrame, fields: Optional[List[str]] = None) -> pd.DataFrame:
+    """
+    Sorts a DataFrame based on a given list of fields.
+
+    If no list of fields is provided, the DataFrame is automatically sorted
+    by the default fields: 'icao24' and then 'ts' (time).
+
+    Parameters:
+        df (pd.DataFrame): The input DataFrame to be sorted.
+        fields (Optional[List[str]]): A list of column names to sort by.
+                                      Defaults to None, which triggers auto-sorting
+                                      by ['icao24', 'ts'].
+
+    Returns:
+        pd.DataFrame: A new DataFrame sorted by the specified fields.
+
+    Raises:
+        KeyError: If any of the specified sorting fields are not in the DataFrame.
+    """
+    # If no sorting fields are provided, use default fields
+    if fields is None:
+        fields = ['icao24', 'ts']
+
+    # Ensure all provided fields exist in the DataFrame columns
+    missing_fields = [field for field in fields if field not in df.columns]
+    if missing_fields:
+        raise KeyError(f"The following fields are not in the DataFrame: {missing_fields}")
+
+    # Return a new DataFrame sorted by the specified fields in ascending order
+    sorted_df = df.sort_values(by=fields, ascending=True).reset_index(drop=True)
+    return sorted_df
