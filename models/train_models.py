@@ -24,8 +24,8 @@ def train_and_save_model(X, y, model, name):
     print("MAE:", mean_absolute_error(y_test, y_pred))
     print("R^2:", r2_score(y_test, y_pred))
 
-    joblib.dump(model, f"{name}_model.pkl")
-    print(f"Saved {name} model to {name}_model.pkl")
+    joblib.dump(model, f"models/{name}_model.pkl")
+    print(f"Saved {name} model to models/{name}_model.pkl")
 
 # ----------------------------
 # Main Pipeline
