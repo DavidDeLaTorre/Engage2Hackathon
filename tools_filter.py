@@ -301,12 +301,12 @@ def identify_landing_runway(df):
             continue
 
         # Ensure that the found points are "close enough" to the FAP
-        if nearest_fap['distance'] > 2000:  # [meters]
+        if nearest_fap['distance'] > 700:  # [meters]
             print(f'  icao24 {icao24} at ts {rep_ts} ({rep_date}): FAP distance too large: {nearest_fap["distance"]}')
             continue
 
         # Ensure that the found points are "close enough" to the THR
-        if nearest_thr['distance'] > 2000:  # [meters]
+        if nearest_thr['distance'] > 700:  # [meters]
             print(f'  icao24 {icao24} at ts {rep_ts} ({rep_date}): THR distance too large: {nearest_thr["distance"]}')
             continue
 
