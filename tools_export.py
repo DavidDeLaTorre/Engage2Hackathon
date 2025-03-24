@@ -322,7 +322,7 @@ def export_trajectories_FAP_predicted_FAP_to_kml(df: pd.DataFrame, output_file: 
         </IconStyle>
       </Style>
       <Point>
-        <coordinates>{fap.longitude},{fap.latitude},{fap.altitude}</coordinates>
+        <coordinates>{fap.longitude},{fap.latitude},0</coordinates>
       </Point>
     </Placemark>
 """
