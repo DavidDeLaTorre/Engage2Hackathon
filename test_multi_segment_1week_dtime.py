@@ -161,9 +161,22 @@ def main():
     # Call the plotting function
     plot_delta_time_pdf_by_runway(normal_basic_info_df)
 
-    # Save the filtered DataFrame to CSV & KML
+    # Extract the training CSV
+    df_training_subset = basic_info_df[
+        ['icao24', 'runway_fap', 'ts_fap', 'ts_thr', 'delta_time', 'distance_fap_to_thr']
+    ]
+
+    # Save the filtered DataFrame to CSV
+    print("export_trajectories_to_csv training ...")
+    export_trajectories_to_csv(df_training_subset, output_name + '_training.csv')
+
+    # Save the filtered DataFrame to CSV
     print("export_trajectories_to_csv all ...")
     export_trajectories_to_csv(df, output_name + '_all.csv')
+    print("export_trajectories_to_csv filtered ...")
+    export_trajectories_to_csv(normal_basic_info_df, output_name + '_filtered_ils.csv')
+
+    # Save the filtered DataFrame to KML
     print("export_trajectories_to_kml all ...")
     export_trajectories_to_kml(df, output_name + '_all.kml')
     print("export_trajectories_to_kml segments ...")
