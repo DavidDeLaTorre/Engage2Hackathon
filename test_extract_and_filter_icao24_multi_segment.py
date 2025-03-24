@@ -22,7 +22,7 @@ Usage:
 import sys
 
 from tools_export import export_trajectories_to_csv, export_trajectories_to_kml
-from tools_filter import identify_segments, sort_dataframe
+from tools_filter import identify_segments, sort_dataframe, filter_dataframe_by_bounds, filter_dataframe_by_altitude
 from tools_import import load_and_process_parquet_files
 
 
@@ -57,11 +57,20 @@ def main():
     # Identify landing/departure segments, for each icao24 flight
     df_segments, df_extra = identify_segments(sorted_df)
 
-    # Save the filtered DataFrame to CSV.
-    export_trajectories_to_csv(df_segments, output_csv)
+    # Final df
+    df = df_segments
+
+    # Filter dataframe by geographical coordinates around Madrid
+    min_lat, max_lat, min_lon, max_lon = [40.3, 40.8, -3.8, -3.3]  # [deg]
+    df = filter_dataframe_by_bounds(df, min_lat, max_lat, min_lon, max_lon)
+    min_alt, max_alt = [-1000, 10000]  # [ft]
+    df = filter_dataframe_by_altitude(df, min_alt, max_alt)
+
+    # Save the filtered DataFrame to CSV
+    export_trajectories_to_csv(df, output_csv)
 
     # Export the trajectories to a KML file.
-    export_trajectories_to_kml(df_segments, output_kml)
+    export_trajectories_to_kml(df, output_kml)
 
 
 if __name__ == '__main__':

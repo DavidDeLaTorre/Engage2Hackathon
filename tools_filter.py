@@ -148,25 +148,11 @@ def filter_dataframe_by_altitude(df, min_alt, max_alt):
 
 def identify_segments(df, time_gap_threshold=3600):
     """
-    Identify separate trajectory segments in ADS-B data based on time gaps and classify each segment.
-
-    The function processes a DataFrame containing ADS-B data, which must include at least the columns:
-      - 'ts': timestamp in seconds.
-      - 'altitude': altitude measurements.
-
-    It performs the following steps:
-      1. Sorts the DataFrame by timestamp.
-      2. Computes the time gap between consecutive data points.
-      3. Assigns a segment ID whenever the time gap exceeds the specified threshold.
-      4. For each segment, calculates the overall altitude change.
-      5. Classifies each segment as:
-           - "departing" if the overall altitude increases.
-           - "landing" if the overall altitude decreases.
-           - "level" if there is negligible altitude change.
-      6. Merges the segment classification back into the original DataFrame.
+    Identify separate trajectory segments in ADS-B data based on time gaps and classify each segment,
+    processing the data for each unique flight (icao24) individually.
 
     Parameters:
-      df (pd.DataFrame): DataFrame containing ADS-B data with at least 'ts' and 'altitude' columns.
+      df (pd.DataFrame): DataFrame containing ADS-B data with at least 'ts', 'altitude', and 'icao24' columns.
       time_gap_threshold (int, optional): The time gap threshold (in seconds) used to define a new segment.
                                           Defaults to 3600 seconds (1 hour).
 
@@ -177,6 +163,7 @@ def identify_segments(df, time_gap_threshold=3600):
               * 'segment': Segment identifier.
               * 'trajectory': Classification of the segment ('departing', 'landing', or 'level').
         - segment_summary (pd.DataFrame): Summary statistics for each identified segment including:
+              * 'icao24': Flight identifier.
               * 'segment': Segment ID.
               * 'start_time': First timestamp in the segment.
               * 'end_time': Last timestamp in the segment.
@@ -185,31 +172,53 @@ def identify_segments(df, time_gap_threshold=3600):
               * 'altitude_change': Overall altitude change in the segment.
               * 'trajectory': Classification of the segment.
     """
+    annotated_list = []
+    segment_summary_list = []
 
-    # Compute the time difference between consecutive rows [seconds]
-    df['time_gap'] = df['ts'].diff().fillna(0) / 1000
+    # Process each flight separately by grouping on 'icao24'
+    for icao, group in df.groupby('icao24'):
+        # Ensure the data is sorted by timestamp
+        group = group.sort_values('ts').copy()
 
-    # Create a new segment whenever the time gap exceeds the threshold.
-    df['segment'] = (df['time_gap'] > time_gap_threshold).cumsum()
+        # Compute time difference between consecutive rows (converted to seconds)
+        group['time_gap'] = group['ts'].diff().fillna(0) / 1000
 
-    # Group by each segment to compute summary statistics.
-    segment_summary = df.groupby('segment').agg(
-        start_time=('ts', 'first'),
-        end_time=('ts', 'last'),
-        start_altitude=('altitude', 'first'),
-        end_altitude=('altitude', 'last')
-    ).reset_index()
+        # Create a new segment whenever the time gap exceeds the threshold.
+        # Each flight has its own segment numbering.
+        group['segment'] = (group['time_gap'] > time_gap_threshold).cumsum()
 
-    # Calculate overall altitude change for each segment.
-    segment_summary['altitude_change'] = segment_summary['end_altitude'] - segment_summary['start_altitude']
+        # Compute summary statistics for each segment in the flight.
+        seg_summary = group.groupby('segment').agg(
+            start_time=('ts', 'first'),
+            end_time=('ts', 'last'),
+            start_altitude=('altitude', 'first'),
+            end_altitude=('altitude', 'last')
+        ).reset_index()
 
-    # Classify each segment based on the overall altitude change.
-    segment_summary['trajectory'] = np.where(
-        segment_summary['altitude_change'] > 0, 'departing',
-        np.where(segment_summary['altitude_change'] < 0, 'landing', 'level')
-    )
+        # Calculate overall altitude change for each segment.
+        seg_summary['altitude_change'] = seg_summary['end_altitude'] - seg_summary['start_altitude']
 
-    # Merge the trajectory classification back into the original DataFrame.
-    annotated_df = df.merge(segment_summary[['segment', 'trajectory']], on='segment', how='left')
+        # Classify each segment.
+        seg_summary['trajectory'] = np.where(
+            seg_summary['altitude_change'] > 0, 'departing',
+            np.where(seg_summary['altitude_change'] < 0, 'landing', 'level')
+        )
+
+        # Add the flight identifier to the segment summary.
+        seg_summary['icao24'] = icao
+
+        # Merge the trajectory classification back into the group's DataFrame.
+        group = group.merge(seg_summary[['segment', 'trajectory']], on='segment', how='left')
+
+        # (Optionally) Reinforce the flight identifier in the group's DataFrame.
+        group['icao24'] = icao
+
+        # Append the results for this flight.
+        annotated_list.append(group)
+        segment_summary_list.append(seg_summary)
+
+    # Combine the annotated data and summaries from all flights.
+    annotated_df = pd.concat(annotated_list).reset_index(drop=True)
+    segment_summary = pd.concat(segment_summary_list).reset_index(drop=True)
 
     return annotated_df, segment_summary
