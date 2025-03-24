@@ -20,10 +20,11 @@ from tools_export import export_trajectories_to_csv, export_trajectories_to_kml
 def main():
     # Ensure that the correct number of arguments are provided.
     if len(sys.argv) != 4:
-        input_file = "data/engage-hackathon-2025/year=2024/month=11/day=16/hour=0/45f63f420e6e4985bbb2e9b2e976a782.snappy.parquet"
-        icao24 = "408064"
-        output_csv = "output/lacacadelavaca.csv"
-        output_kml = "output/lacacadelavaca.kml"
+        input_file = "data/engage-hackathon-2025/year=2024/month=11/day=16/hour=12/"
+        input_file += "1225667186084f958614500e99a47e92.snappy.parquet"
+        icao24 = "01024c"
+        output_csv = "output/test_single_01024c_landing.csv"
+        output_kml = "output/test_single_01024c_landing.kml"
     else:  # Unpack command line arguments
         input_file = sys.argv[1]
         icao24 = sys.argv[2]
