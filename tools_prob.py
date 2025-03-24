@@ -11,16 +11,16 @@ def sample_greater_than_mean(n_samples:int, dist_mean:float, loc:float, scale:fl
 
 def get_time(runway:str) -> float:
     if runway == "32L":
-        mean = 128.43645969884855
-        std_dev = 319.08290992563684
+        mean = 130.08306116504852
+        std_dev = 19.495828938298473
     elif runway == "32R":
-        mean = 214.94028219971054
-        std_dev = 310.3969762852255
+        mean = 199.94093323550987
+        std_dev = 13.984296004894713
     elif runway == "18L":
-        mean = 142.61910344827587
-        std_dev = 307.98815630923383
+        mean = 222.834
+        std_dev = 15.012913635211149
     elif runway == "18R":
-        mean = 56.72466666666662
-        std_dev = 775.7244857238451
+        mean = 286.3500833333333
+        std_dev = 13.354046492344446
 
     return sample_greater_than_mean(1, dist_mean=mean, loc=mean, scale=std_dev)[0]
