@@ -52,84 +52,129 @@ def export_trajectories_to_kml(df: pd.DataFrame, output_file: str):
     """
     Exports the flight trajectories to a KML file.
 
-    If the DataFrame contains a "segment" column, the trajectories are split by segment,
-    with each segment exported as its own Placemark (grouped by "icao24" and "segment").
-    If the DataFrame does not contain "segment", all points for each aircraft (grouped by "icao24")
-    are exported as a single Placemark.
+    If the DataFrame contains segmentation information (both "segment" and "trajectory" columns),
+    the function groups the resulting placemarks into KML folders by segment type (e.g., landing,
+    departing, or level). Otherwise, if segmentation is not available, it groups by icao24 (or
+    icao24 and segment, if only segmentation without trajectory exists).
 
     The KML file uses the columns:
       - "icao24", "altitude", "lat_deg", "lon_deg", and optionally "ts" for sorting.
-      - If available, a "trajectory" column (e.g., 'landing', 'departing', 'level') is used in the placemark name.
+      - If available, a "trajectory" column is used in the placemark name.
 
     Args:
         df (pd.DataFrame): DataFrame containing the flight data.
         output_file (str): The file path for the output KML file.
     """
-    # Validate required columns
+    import sys
+
+    # Validate required columns.
     required_columns = {'icao24', 'altitude', 'lat_deg', 'lon_deg'}
     if not required_columns.issubset(df.columns):
         print("Error: The DataFrame does not contain all required columns for KML export.")
         sys.exit(1)
 
-    # Check if the DataFrame has segmentation information.
+    # Determine if segmentation and trajectory information is available.
     has_segments = 'segment' in df.columns
+    has_trajectory = 'trajectory' in df.columns
 
-    # Use 'ts' (if available) for sorting; otherwise use 'segment' (if available)
+    # Use 'ts' (if available) for sorting; otherwise, if segments exist, sort by 'segment'.
     if 'ts' in df.columns:
         df = df.sort_values('ts')
     elif has_segments:
         df = df.sort_values('segment')
 
-    # Define grouping:
-    # If segments exist, group by both 'icao24' and 'segment'; otherwise, group by 'icao24' only.
-    if has_segments:
+    # When both segmentation and trajectory classification are available,
+    # group placemarks into folders by segment type.
+    if has_segments and has_trajectory:
+        # Group by both 'icao24' and 'segment' to get each flight segment.
         group_keys = ['icao24', 'segment']
-    else:
-        group_keys = ['icao24']
+        grouped = df.groupby(group_keys)
 
-    grouped = df.groupby(group_keys)
+        # Prepare folders: keys will be trajectory types.
+        folders = {}
+        num_groups = len(grouped)
+        colors = generate_kml_colors(num_groups)  # Assumes this helper returns valid KML color strings.
+        line_width = 4
 
-    # Count the total number of groups to generate colors.
-    num_groups = len(grouped)
-    colors = generate_kml_colors(num_groups)  # This helper function must return valid KML color strings.
-    line_width = 4  # Arbitrary line width
+        # Build placemarks and assign them to their respective folder.
+        for idx, group_keys_val in enumerate(grouped.groups):
+            # For two-key grouping, group_keys_val is a tuple (icao24, segment).
+            aircraft_id, segment_id = group_keys_val
+            group = grouped.get_group(group_keys_val)
+            if 'ts' in group.columns:
+                group = group.sort_values('ts')
 
-    # Start building KML content.
-    kml_content = """<?xml version="1.0" encoding="UTF-8"?>
+            # Use trajectory classification to assign folder.
+            traj_class = group['trajectory'].iloc[0]
+            placemark_name = f"Flight {aircraft_id} - Segment {segment_id} ({traj_class})"
+            color = colors[idx % len(colors)]
+
+            placemark = f"""        <!-- Placemark for {placemark_name} -->
+        <Placemark>
+          <name>{placemark_name}</name>
+          <Style>
+            <LineStyle>
+              <color>{color}</color>
+              <width>{line_width}</width>
+            </LineStyle>
+          </Style>
+          <LineString>
+            <!-- Coordinates: longitude,latitude,altitude -->
+            <coordinates>
+"""
+            for _, row in group.iterrows():
+                placemark += f"              {row['lon_deg']},{row['lat_deg']},{row['altitude']}\n"
+            placemark += """            </coordinates>
+          </LineString>
+        </Placemark>
+"""
+
+            # Add the placemark to the folder keyed by its trajectory classification.
+            folders.setdefault(traj_class, []).append(placemark)
+
+        # Build KML content with folders for each trajectory type.
+        kml_content = """<?xml version="1.0" encoding="UTF-8"?>
 <kml xmlns="http://www.opengis.net/kml/2.2">
   <Document>
 """
-    for idx, group_keys_val in enumerate(grouped.groups):
-        # For single-key grouping, group_keys_val is just the aircraft id.
-        # For two-key grouping, it is a tuple (icao24, segment).
-        if has_segments:
-            aircraft_id, segment_id = group_keys_val
-        else:
-            aircraft_id = group_keys_val
-            segment_id = None
+        for traj, placemarks in folders.items():
+            kml_content += f"    <Folder>\n      <name>{traj.capitalize()}</name>\n"
+            for placemark in placemarks:
+                kml_content += placemark
+            kml_content += "    </Folder>\n"
+        kml_content += "  </Document>\n</kml>\n"
 
-        group = grouped.get_group(group_keys_val)
+    else:
+        # Fallback grouping: if segmentation exists, group by ['icao24', 'segment'], else by ['icao24'].
+        group_keys = ['icao24', 'segment'] if has_segments else ['icao24']
+        grouped = df.groupby(group_keys)
+        num_groups = len(grouped)
+        colors = generate_kml_colors(num_groups)
+        line_width = 4
 
-        # If a timestamp is available, sort the group.
-        if 'ts' in group.columns:
-            group = group.sort_values('ts')
+        kml_content = """<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+"""
+        for idx, group_keys_val in enumerate(grouped.groups):
+            if has_segments:
+                aircraft_id, segment_id = group_keys_val
+            else:
+                aircraft_id = group_keys_val
+                segment_id = None
 
-        # Retrieve trajectory classification if available.
-        if 'trajectory' in group.columns:
-            traj_class = group['trajectory'].iloc[0]
-        else:
-            traj_class = "N/A"
+            group = grouped.get_group(group_keys_val)
+            if 'ts' in group.columns:
+                group = group.sort_values('ts')
 
-        # Build the placemark name based on available keys.
-        if segment_id is not None:
-            placemark_name = f"Flight {aircraft_id} - Segment {segment_id} ({traj_class})"
-        else:
-            placemark_name = f"Flight {aircraft_id} ({traj_class})"
+            traj_class = group['trajectory'].iloc[0] if 'trajectory' in group.columns else "N/A"
+            if segment_id is not None:
+                placemark_name = f"Flight {aircraft_id} - Segment {segment_id} ({traj_class})"
+            else:
+                placemark_name = f"Flight {aircraft_id} ({traj_class})"
 
-        # Select a color (cycle if necessary).
-        color = colors[idx % len(colors)]
-
-        placemark = f"""    <!-- Placemark for {placemark_name} -->
+            color = colors[idx % len(colors)]
+            placemark = f"""    <!-- Placemark for {placemark_name} -->
     <Placemark>
       <name>{placemark_name}</name>
       <Style>
@@ -142,19 +187,15 @@ def export_trajectories_to_kml(df: pd.DataFrame, output_file: str):
         <!-- Coordinates: longitude,latitude,altitude -->
         <coordinates>
 """
-        # Append the coordinates (KML expects lon,lat,alt).
-        for _, row in group.iterrows():
-            placemark += f"          {row['lon_deg']},{row['lat_deg']},{row['altitude']}\n"
-        placemark += """        </coordinates>
+            for _, row in group.iterrows():
+                placemark += f"          {row['lon_deg']},{row['lat_deg']},{row['altitude']}\n"
+            placemark += """        </coordinates>
       </LineString>
     </Placemark>
 """
-        kml_content += placemark
+            kml_content += placemark
+        kml_content += "  </Document>\n</kml>\n"
 
-    # Close KML tags.
-    kml_content += """  </Document>
-</kml>
-"""
     # Write the KML content to the output file.
     try:
         with open(output_file, "w", encoding="utf-8") as file:
