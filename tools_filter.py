@@ -273,19 +273,6 @@ def find_nearest_point(baseline_position: dict, filtered_df: pd.DataFrame):
 
 
 def identify_landing_runway(df):
-
-    # Haversine formula to compute distance (in km) between two lat/lon pairs.
-    def haversine(lat1, lon1, lat2, lon2):
-        # Convert decimal degrees to radians
-        lon1, lat1, lon2, lat2 = map(radians, [lon1, lat1, lon2, lat2])
-        # Haversine formula
-        dlon = lon2 - lon1
-        dlat = lat2 - lat1
-        a = sin(dlat / 2) ** 2 + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
-        c = 2 * asin(sqrt(a))
-        km = 6371 * c  # Earth radius in kilometers
-        return km
-
     results = []
     basic_info_results = []
 
@@ -308,6 +295,10 @@ def identify_landing_runway(df):
         group_df['ts_fap'] = nearest_fap['ts']
         group_df['ts_thr'] = nearest_thr['ts']
 
+        # Compute and add delta_time to each row in the group
+        delta_time = (nearest_thr['ts'] - nearest_fap['ts']) / 1000
+        group_df['delta_time'] = delta_time
+
         results.append(group_df)
 
         # Extract coordinates for the nearest FAP and threshold df points
@@ -327,7 +318,7 @@ def identify_landing_runway(df):
             'idx_thr': nearest_thr['index'],
             'ts_fap': nearest_fap['ts'],
             'ts_thr': nearest_thr['ts'],
-            'delta_time': (nearest_thr['ts'] - nearest_fap['ts']) / 1000,
+            'delta_time': delta_time,
             'lat_deg_fap': lat_fap,
             'lon_deg_fap': lon_fap,
             'lat_deg_thr': lat_thr,
@@ -338,6 +329,7 @@ def identify_landing_runway(df):
 
     # Concatenate the augmented group dataframes
     df_with_runway = pd.concat(results).reset_index(drop=True)
+
     # Create the smaller dataframe with basic info for each icao24 segment
     basic_info_df = pd.DataFrame(basic_info_results)
 
