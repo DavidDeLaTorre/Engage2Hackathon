@@ -12,18 +12,19 @@ import sys
 
 from tools_filter import filter_dataframe_by_bounds, filter_dataframe_by_altitude, sort_dataframe
 from tools_import import load_parquet_files
-from tools_export import export_trajectories_to_kml
+from tools_export import export_trajectories_to_kml, export_trajectories_to_csv
 
 
 def main():
-    if len(sys.argv) != 5:
-        print("Usage: python main_generate_kml.py <year> <month> <day> <output_kml_file>")
+    if len(sys.argv) != 6:
+        print("Usage: python main_generate_kml.py <year> <month> <day> <output_csv_file> <output_kml_file>")
         sys.exit(1)
 
     year = int(sys.argv[1])
     month = int(sys.argv[2])
     day = int(sys.argv[3])
-    output_kml = sys.argv[4]
+    output_csv = sys.argv[4]
+    output_kml = sys.argv[5]
 
     # For one entire day, process all hours from 0 to 23
     df = load_parquet_files(
@@ -43,6 +44,9 @@ def main():
 
     # Sort dataframe by icao24 and time
     df = sort_dataframe(df)
+
+    # Export dataframe to CSV
+    export_trajectories_to_csv(df, output_csv)
 
     # Generate the KML with all flights
     export_trajectories_to_kml(df, output_kml)

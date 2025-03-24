@@ -32,7 +32,7 @@ def generate_kml_colors(num_colors: int) -> list:
     return colors
 
 
-def save_to_csv(df: pd.DataFrame, output_file: str):
+def export_trajectories_to_csv(df: pd.DataFrame, output_file: str):
     """
     Save the provided DataFrame to a CSV file.
 

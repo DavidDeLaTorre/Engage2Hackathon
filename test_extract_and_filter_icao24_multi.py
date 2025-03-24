@@ -22,7 +22,7 @@ Usage:
 import sys
 
 from tools_import import process_adsb_data
-from tools_export import save_to_csv, export_trajectories_to_kml
+from tools_export import export_trajectories_to_csv, export_trajectories_to_kml
 
 
 def main():
@@ -53,7 +53,7 @@ def main():
     filtered_df = process_adsb_data(input_file, icao24_list)
 
     # Save the filtered DataFrame to CSV.
-    save_to_csv(filtered_df, output_csv)
+    export_trajectories_to_csv(filtered_df, output_csv)
 
     # Export the trajectories to a KML file.
     export_trajectories_to_kml(filtered_df, output_kml)

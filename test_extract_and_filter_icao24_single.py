@@ -14,7 +14,7 @@ Usage:
 import sys
 
 from tools_import import load_and_process_parquet_files
-from tools_export import save_to_csv, export_trajectories_to_kml
+from tools_export import export_trajectories_to_csv, export_trajectories_to_kml
 
 
 def main():
@@ -42,7 +42,7 @@ def main():
     )
 
     # Save the filtered DataFrame to CSV.
-    save_to_csv(filtered_df, output_csv)
+    export_trajectories_to_csv(filtered_df, output_csv)
 
     # Export the trajectory to a KML file.
     export_trajectories_to_kml(filtered_df, output_kml)
