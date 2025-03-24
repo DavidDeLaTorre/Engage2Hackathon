@@ -3,29 +3,6 @@ from typing import List, Optional
 import pandas as pd
 
 
-def filter_adsb_data(df: pd.DataFrame, icao24_list: list = None) -> pd.DataFrame:
-    """
-    Filter the ADS-B data by a list of icao24 identifiers and remove rows with missing altitude or latitude.
-
-    Args:
-        df (pd.DataFrame): The raw ADS-B data.
-        icao24_list (list, optional): List of aircraft identifiers to keep. If None, all flights are processed.
-
-    Returns:
-        pd.DataFrame: The filtered DataFrame.
-    """
-    if icao24_list:
-        df = df[df['icao24'].isin(icao24_list)]
-        print(f"Rows after filtering by provided icao24 values {icao24_list}: {len(df)}")
-    else:
-        print("No specific icao24 codes provided. Processing all flights.")
-    df = df[df['altitude'].notna()]
-    df = df[df['lat_deg'].notna()]
-    df = df[df['lon_deg'].notna()]
-    print(f"Rows after filtering out null altitude and lat_deg: {len(df)}")
-    return df
-
-
 def extract_adsb_columns(df: pd.DataFrame, columns: list = None) -> pd.DataFrame:
     """
     Extract a subset of columns from the ADS-B data.

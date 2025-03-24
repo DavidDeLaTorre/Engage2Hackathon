@@ -1,11 +1,12 @@
 
-import sys
-import os
 import glob
-import pandas as pd
+import os
+import sys
 from datetime import datetime, timedelta
 
-from tools_filter import filter_adsb_data, extract_adsb_columns, filter_dataframe_by_icao, clean_dataframe_nulls
+import pandas as pd
+
+from tools_filter import extract_adsb_columns, filter_dataframe_by_icao, clean_dataframe_nulls
 
 
 def generate_dates_list(start_year, start_month, start_day, start_hour,
@@ -102,7 +103,7 @@ def load_parquet_files(start_year, start_month, start_day, start_hour,
         # Match all parquet files in the folder (e.g., "*.snappy.parquet" if needed)
         pattern = os.path.join(folder, "*.parquet")
         files = glob.glob(pattern)
-        df = load_and_process_parquet_files(files, columns=['df','icao24','ts','altitude','lat_deg','lon_deg'])
+        df = load_and_process_parquet_files(files, columns_to_extract=['df', 'icao24', 'ts', 'altitude', 'lat_deg', 'lon_deg'])
         df_list.append(df)
 
     # Ensure that df_list is an iterable of DataFrames.
@@ -112,7 +113,8 @@ def load_parquet_files(start_year, start_month, start_day, start_hour,
     return combined_df
 
 
-def load_and_process_parquet_files(file_list: list, icao24_list: list = None, columns: list = None) -> pd.DataFrame:
+def load_and_process_parquet_files(file_list: list, icao24_list: list = None,
+                                   columns_to_clean: list = None, columns_to_extract: list = None) -> pd.DataFrame:
     """
     Incrementally load, filter, and extract columns from a list of parquet files.
     This approach reduces memory usage by processing each file individually.
@@ -120,7 +122,9 @@ def load_and_process_parquet_files(file_list: list, icao24_list: list = None, co
     Args:
         file_list (list): List of parquet file paths.
         icao24_list (list, optional): List of aircraft identifiers to filter by. Defaults to None.
-        columns (list, optional): List of columns to extract.
+        columns_to_clean (list, optional): List of columns to clean. All rows with null are removed.
+            Defaults to ['lat_deg', 'lon_deg', 'altitude', 'ts']
+        columns_to_extract (list, optional): List of columns to extract.
             Defaults to ['icao24', 'altitude', 'lat_deg', 'lon_deg', 'ts'].
 
     Returns:
@@ -133,53 +137,12 @@ def load_and_process_parquet_files(file_list: list, icao24_list: list = None, co
         # Filter the data based on provided icao24 identifiers and non-null altitude/lat_deg.
         df_filtered = filter_dataframe_by_icao(df_raw, icao24_list)
         # Filter the data to remove null altitude/lat_deg.
-        df_filtered = clean_dataframe_nulls(df_filtered, ['altitude', 'lat_deg', 'lon_deg'])
+        df_filtered = clean_dataframe_nulls(df_filtered, columns_to_clean)
         # Extract the required subset of columns.
-        df_extracted = extract_adsb_columns(df_filtered, columns)
+        df_extracted = extract_adsb_columns(df_filtered, columns_to_extract)
         df_list.append(df_extracted)
     if df_list:
         combined_df = pd.concat(df_list, ignore_index=True)
     else:
         combined_df = pd.DataFrame()
     return combined_df
-
-
-def process_adsb_data(input_file: str, icao24_list: list = None) -> pd.DataFrame:
-    """
-    Load and filter the ADS-B data.
-
-    Reads the parquet file and:
-      - Filters the dataset by a provided list of icao24 identifiers if given.
-      - Removes rows where the "altitude" field is null.
-
-    Args:
-        input_file (str): The path to the input parquet file containing ADS-B data.
-        icao24_list (list, optional): A list of aircraft identifiers to process. Defaults to None (process all flights).
-
-    Returns:
-        pd.DataFrame: A DataFrame containing the filtered data.
-    """
-    try:
-        df = pd.read_parquet(input_file)
-    except Exception as e:
-        print(f"Error reading the parquet file: {e}")
-        sys.exit(1)
-
-    print(f"Initial data rows: {len(df)}")
-
-    # If a list of icao24 codes is provided, filter the DataFrame to include only those flights.
-    if icao24_list:
-        df = df[df['icao24'].isin(icao24_list)]
-        print(f"Rows after filtering by provided icao24 values {icao24_list}: {len(df)}")
-    else:
-        print("No specific icao24 codes provided. Processing all flights.")
-
-    # Remove rows where the "altitude" field is null.
-    df_filtered = df[df['altitude'].notna()]
-
-    # Remove rows where the 'lat_deg' field is null.
-    df_filtered = df_filtered[df_filtered['lat_deg'].notna()]
-
-    print(f"Rows after filtering out null altitudes: {len(df_filtered)}")
-
-    return df_filtered

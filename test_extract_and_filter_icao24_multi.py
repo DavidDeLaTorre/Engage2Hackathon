@@ -21,8 +21,8 @@ Usage:
 
 import sys
 
-from tools_import import process_adsb_data
 from tools_export import export_trajectories_to_csv, export_trajectories_to_kml
+from tools_import import load_and_process_parquet_files
 
 
 def main():
@@ -34,23 +34,20 @@ def main():
         <input_parquet_file> <output_csv_file> <output_kml_file> [icao24_1 icao24_2 ...]
     """
     if len(sys.argv) < 4:
-        print(
-            "Usage: python process_adsb.py <input_parquet_file> <output_csv_file> <output_kml_file> [icao24_1 icao24_2 ...]")
-        sys.exit(1)
+        input_file = "data/engage-hackathon-2025/year=2024/month=11/day=16/hour=0/45f63f420e6e4985bbb2e9b2e976a782.snappy.parquet"
+        output_csv = "output/lacacadelavaca2.csv"
+        output_kml = "output/lacacadelavaca2.kml"
+    else:
+        input_file = sys.argv[1]
+        output_csv = sys.argv[2]
+        output_kml = sys.argv[3]
 
-    input_file = sys.argv[1]
-    output_csv = sys.argv[2]
-    output_kml = sys.argv[3]
-
-    input_file = "data/engage-hackathon-2025/year=2024/month=11/day=16/hour=0/45f63f420e6e4985bbb2e9b2e976a782.snappy.parquet"
-    output_csv = "output/lacacadelavaca2.csv"
-    output_kml = "output/lacacadelavaca2.kml"
 
     # Optional flight identifiers provided as extra command-line arguments.
     icao24_list = sys.argv[4:] if len(sys.argv) > 4 else None
 
     # Process ADS-B data.
-    filtered_df = process_adsb_data(input_file, icao24_list)
+    filtered_df = load_and_process_parquet_files([input_file], icao24_list)
 
     # Save the filtered DataFrame to CSV.
     export_trajectories_to_csv(filtered_df, output_csv)

@@ -34,7 +34,7 @@ def main():
     filtered_df = load_and_process_parquet_files(
         file_list=[input_file],
         icao24_list=[icao24],
-        columns=['df','icao24','ts','altitude','lat_deg','lon_deg']
+        columns_to_extract=['df', 'icao24', 'ts', 'altitude', 'lat_deg', 'lon_deg']
     )
 
     # Save the filtered DataFrame to CSV.
