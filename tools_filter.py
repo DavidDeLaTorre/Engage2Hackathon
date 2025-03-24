@@ -288,7 +288,7 @@ def identify_landing_runway(df):
 
         # Get a representative timestamp from the group (using the first row)
         rep_ts = group_df['ts'].iloc[0]
-        rep_date = datetime.datetime.utcfromtimestamp(rep_ts / 1000).strftime('%Y-%m-%d')
+        rep_date = datetime.datetime.utcfromtimestamp(rep_ts / 1000).strftime('%Y-%m-%d %Hh')
 
         # Find the nearest point to the FAP position and to the threshold position.
         nearest_fap = find_nearest_point(FAP_position, group_df)
