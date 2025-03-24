@@ -43,9 +43,7 @@ def main():
     year = 2024
     month = 11
     day = 16
-    output_csv = 'output/test_1week.csv'
-    output_kml = 'output/test_1week.kml'
-    output_kml2 = 'output/test_1week_segments.kml'
+    output_name = 'output/test_1week'
 
     # Define a cache file path (adjust folder as needed)
     cache_file = f"output/test_1week_cached_df_{year}_{month:02d}_{day:02d}.pkl"
@@ -118,13 +116,13 @@ def main():
     cache_file3 = f"output/test_1week_cached_landing_{year}_{month:02d}_{day:02d}.pkl"
     if os.path.exists(cache_file3):
         print(f"Loading cached landing runway results from {cache_file3} ...")
-        df_with_runway, basic_info_df = pd.read_pickle(cache_file3)
+        df_with_runway, basic_info_df, df_segments_ils = pd.read_pickle(cache_file3)
     else:
         print("Cache file for landing runway not found. Processing landing runway results ...")
-        df_with_runway, basic_info_df = identify_landing_runway(df)
+        df_with_runway, basic_info_df, df_segments_ils = identify_landing_runway(df)
 
         print(f"Saving landing runway results to cache file {cache_file3} ...")
-        pd.to_pickle((df_with_runway, basic_info_df), cache_file3)
+        pd.to_pickle((df_with_runway, basic_info_df, df_segments_ils), cache_file3)
 
     # Define the normal range thresholds (in seconds)
     min_delta = 100
@@ -149,9 +147,15 @@ def main():
     # Filter the dataframe to only include segments with delta_time within the normal range
     normal_df_with_runway = df_with_runway[
         (df_with_runway['delta_time'] >= min_delta) & (df_with_runway['delta_time'] <= max_delta)]
-
     # Extract the delta_time for each icao24 and landing and segment
     df_times = compute_segment_delta_times(normal_df_with_runway)
+    plot_delta_time_pdf(df_times)
+
+    # Filter the dataframe to only include segments with delta_time within the normal range
+    normal_df_segments_ils = df_segments_ils[
+        (df_segments_ils['delta_time'] >= min_delta) & (df_segments_ils['delta_time'] <= max_delta)]
+    # Extract the delta_time for each icao24 and landing and segment
+    df_times = compute_segment_delta_times(normal_df_segments_ils)
     plot_delta_time_pdf(df_times)
 
     # Call the plotting function
@@ -159,11 +163,12 @@ def main():
 
     # Save the filtered DataFrame to CSV & KML
     print("export_trajectories_to_csv all ...")
-    export_trajectories_to_csv(df, output_csv)
+    export_trajectories_to_csv(df, output_name + '_all.csv')
     print("export_trajectories_to_kml all ...")
-    export_trajectories_to_kml(df, output_kml)
+    export_trajectories_to_kml(df, output_name + '_all.kml')
     print("export_trajectories_to_kml segments ...")
-    export_trajectories_to_kml(normal_df_with_runway, output_kml2)
+    export_trajectories_to_kml(df_segments_ils, output_name + '_segments_all.kml')
+    export_trajectories_to_kml(normal_df_segments_ils, output_name + '_segments_all_filtered.kml')
 
 
 if __name__ == '__main__':

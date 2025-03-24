@@ -276,6 +276,7 @@ def find_nearest_point(baseline_position: dict, filtered_df: pd.DataFrame):
 def identify_landing_runway(df):
     results = []
     basic_info_results = []
+    segments_ils_results = []  # List to collect the trajectory segments (ILS segments)
 
     # Filter out unwanted trajectories
     df = df[~df['trajectory'].isin(['departing', 'level'])]
@@ -350,10 +351,27 @@ def identify_landing_runway(df):
         }
         basic_info_results.append(basic_info)
 
+        # Extract the ILS segment: the rows between the FAP and THR identified points.
+        # We first get their positional indexes in the group's dataframe.
+        try:
+            pos_fap = group_df.index.get_loc(nearest_fap['index'])
+            pos_thr = group_df.index.get_loc(nearest_thr['index'])
+        except Exception as e:
+            print(f"Error determining positions for icao24 {icao24}: {e}")
+            continue
+
+        start_pos = min(pos_fap, pos_thr)
+        end_pos = max(pos_fap, pos_thr) + 1  # +1 to include the endpoint
+        segment_ils = group_df.iloc[start_pos:end_pos]
+        segments_ils_results.append(segment_ils)
+
     # Concatenate the augmented group dataframes
     df_with_runway = pd.concat(results).reset_index(drop=True)
 
     # Create the smaller dataframe with basic info for each icao24 segment
     basic_info_df = pd.DataFrame(basic_info_results)
 
-    return df_with_runway, basic_info_df
+    # Concatenate the ILS segments (if any) into a single dataframe
+    df_segments_ils = pd.concat(segments_ils_results).reset_index(drop=True) if segments_ils_results else pd.DataFrame()
+
+    return df_with_runway, basic_info_df, df_segments_ils
