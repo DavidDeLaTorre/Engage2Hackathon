@@ -17,49 +17,10 @@ from tools_import import load_and_process_parquet_files
 from tools_export import export_trajectories_to_csv, export_trajectories_to_kml, \
     export_trajectories_FAP_predicted_FAP_to_kml
 from math import radians, sin, cos, sqrt, atan2
+from tools_filter import find_nearest_point
 
 from FAP_positions import FAP_position
-
-def haversine(lat1, lon1, lat2, lon2):
-    # Radius of Earth in meters
-    R = 6371000
-    phi1, phi2 = radians(lat1), radians(lat2)
-    dphi = radians(lat2 - lat1)
-    dlambda = radians(lon2 - lon1)
-
-    a = sin(dphi/2)**2 + cos(phi1) * cos(phi2) * sin(dlambda/2)**2
-    c = 2 * atan2(sqrt(a), sqrt(1 - a))
-    return R * c
-
-def find_nearest_FAP_point(FAP_position,filtered_df):
-    # Make sure filtered_df has numeric lat/lon
-    df = filtered_df.copy()
-    df = df.dropna(subset=['lat_deg', 'lon_deg'])
-
-    nearest = {
-        'distance': float('inf'),
-        'runway': None,
-        'point': None,
-        'index': None
-    }
-
-    for runway, fap in FAP_position.items():
-        # Compute haversine distance from all points to this FAP
-        distances = df.apply(
-            lambda row: haversine(row['lat_deg'], row['lon_deg'], fap.latitude, fap.longitude),
-            axis=1
-        )
-
-        min_idx = distances.idxmin()
-        min_distance = distances[min_idx]
-
-        if min_distance < nearest['distance']:
-            nearest['distance'] = min_distance
-            nearest['runway'] = runway
-            nearest['point'] = df.loc[min_idx]
-            nearest['index'] = min_idx
-
-    return nearest
+from threshold_positions import threshold_position
 
 def main():
     # Ensure that the correct number of arguments are provided.
@@ -82,11 +43,17 @@ def main():
         columns_to_extract=['df', 'icao24', 'ts', 'altitude', 'lat_deg', 'lon_deg']
     )
 
-    result = find_nearest_FAP_point(FAP_position, filtered_df)
+    result = find_nearest_point(baseline_position=FAP_position, filtered_df=filtered_df)
     print(f"Nearest point is at index {result['index']} near runway {result['runway']}")
     print(result['point'])
 
-    # # Export the trajectory to a KML file.
+    # ########
+    # index = filtered_df.loc[result['index']]
+    # FAP_record = filtered_df[index]
+    # print("FAP_record")
+    # print(FAP_record)
+
+    # Export the trajectory to a KML file.
     export_trajectories_FAP_predicted_FAP_to_kml(df=filtered_df, output_file=output_kml, FAP_position=FAP_position, nearest_fap_info=result)
 
 if __name__ == '__main__':
