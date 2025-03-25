@@ -152,7 +152,8 @@ def process_adsb_data_1day(year, month, day, delta_days=0, output_dir="output", 
 
     df_training_subset = normal_basic_info_df[
         ['icao24', 'runway_fap', 'ts_fap', 'ts_thr',
-         'distance_fap_to_thr', 'delta_time_fap_to_thr']
+         'distance_fap_to_thr', 'delta_time_fap_to_thr',
+         'speed_fap', 'vertical_speed_fap', 'heading_fap']
     ].copy()  # Create a copy to avoid SettingWithCopyWarning
 
     # Add a new column 'weekday' computed from 'ts_fap'
