@@ -81,7 +81,7 @@ def compute_delta_time_statistics(segment_df: pd.DataFrame) -> dict:
     return stats
 
 
-def plot_delta_time_pdf(segment_df: pd.DataFrame, bins: int = 50) -> None:
+def plot_delta_time_pdf(segment_df: pd.DataFrame, bins: int = 50, output_prefix: str = None) -> None:
     """
     Plots the probability density function (PDF) of delta_times from the provided DataFrame.
 
@@ -123,11 +123,18 @@ def plot_delta_time_pdf(segment_df: pd.DataFrame, bins: int = 50) -> None:
     plt.xlim(min_time, max_time)
     plt.legend()
     plt.grid(True)
-    plt.show()
+
+    # Save the plot if output_prefix is provided, else show the plot
+    if output_prefix is not None:
+        filename = f"{output_prefix}_delta_time_pdf.png"
+        plt.savefig(filename)
+        plt.close()
+    else:
+        plt.show()
 
 
 # Plot delta_time PDF for each runway
-def plot_delta_time_pdf_by_runway(basic_info_df):
+def plot_delta_time_pdf_by_runway(basic_info_df, output_prefix : str = None) -> None:
     # Group the basic_info_df by runway
     for runway, runway_df in basic_info_df.groupby('runway_fap'):
         plt.figure()
@@ -137,4 +144,11 @@ def plot_delta_time_pdf_by_runway(basic_info_df):
         plt.xlabel("Delta Time (seconds)")
         plt.ylabel("Density")
         plt.grid(True)
-        plt.show()
+
+        # Save or display the plot
+        if output_prefix is not None:
+            filename = f"{output_prefix}_runway_{runway}_delta_time_pdf.png"
+            plt.savefig(filename)
+            plt.close()
+        else:
+            plt.show()

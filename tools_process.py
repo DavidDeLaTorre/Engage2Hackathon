@@ -140,15 +140,15 @@ def process_adsb_data_1day(year, month, day, delta_days=0, output_dir="output", 
         (df_with_runway['delta_time'] >= min_delta) & (df_with_runway['delta_time'] <= max_delta)
     ]
     df_times = compute_segment_delta_times(normal_df_with_runway)
-    plot_delta_time_pdf(df_times)
+    plot_delta_time_pdf(df_times, output_prefix=output_prefix)
 
     normal_df_segments_ils = df_segments_ils[
         (df_segments_ils['delta_time'] >= min_delta) & (df_segments_ils['delta_time'] <= max_delta)
     ]
     df_times = compute_segment_delta_times(normal_df_segments_ils)
-    plot_delta_time_pdf(df_times)
+    plot_delta_time_pdf(df_times, output_prefix=output_prefix)
 
-    plot_delta_time_pdf_by_runway(normal_basic_info_df)
+    plot_delta_time_pdf_by_runway(normal_basic_info_df, output_prefix=output_prefix)
 
     # --- Exporting Results ---
     df_training_subset = normal_basic_info_df[
