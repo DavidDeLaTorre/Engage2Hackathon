@@ -1,21 +1,20 @@
 import glob
-
 import pandas as pd
 import joblib
 import os
-
+from tools_calculate import get_day_of_week
 from tools_filter import clean_dataframe_nulls, sort_dataframe, identify_landing_runway_scenario
 from tools_import import load_and_process_parquet_files
 
+
 def process_scenarios(base_path):
-    # Load checkpoint CSV
+    # Load the checkpoint CSV
     csv_path = f"{base_path}/samples/sample_predictions_empty.csv"
     checkpoint_df = pd.read_csv(csv_path)
 
-    # Filter to only runways of interest
+    # Filter only for runways of interest
     allowed_runways = {'18L', '18R', '32L', '32R'}
 
-    # Filter and extract the valid runway
     def extract_valid_runway(rwy):
         rwy = str(rwy)
         for valid in allowed_runways:
@@ -23,15 +22,13 @@ def process_scenarios(base_path):
                 return valid
         return None
 
-    # Apply filter and normalize runway values
     checkpoint_df['runway'] = checkpoint_df['runway'].apply(extract_valid_runway)
     checkpoint_df = checkpoint_df[checkpoint_df['runway'].notna()]
 
-    # Extract list of ICAO24s
     icao24_list = list(checkpoint_df['icao24'].dropna().unique())
     print("Filtered ICAO24s:", icao24_list)
 
-    # Load parquet files
+    # Load parquet files that match the filtered ICAO24s
     df_list = []
     folder_paths = glob.glob(f"{base_path}/samples/*.parquet")
     for file in folder_paths:
@@ -42,12 +39,10 @@ def process_scenarios(base_path):
         )
         df_list.append(df)
 
-    # Combine, clean, and sort
     combined_df = pd.concat(df_list, ignore_index=True)
     df_filtered = clean_dataframe_nulls(combined_df, ['altitude', 'lat_deg', 'lon_deg'])
     df_sorted = sort_dataframe(df_filtered)
 
-    # Merge in runway info from checkpoint file
     df_with_runway = df_sorted.merge(
         checkpoint_df[['icao24', 'runway']],
         on='icao24',
@@ -55,16 +50,23 @@ def process_scenarios(base_path):
     )
     df_with_runway['segment'] = 0
     df_with_runway, basic_info_df, df_segments_ils = identify_landing_runway_scenario(df_with_runway)
+    basic_info_df['weekday'] = basic_info_df['ts_fap'].apply(get_day_of_week)
 
-    df = basic_info_df[
-        ['icao24', 'runway_fap', 'ts_fap', 'ts_thr',
-         'distance_fap_to_thr', 'delta_time_fap_to_thr']
-    ].copy()
+    # Extract hour_of_day from ts_fap (assuming ts_fap is in epoch seconds)
+    try:
+        basic_info_df['ts_fap'] = pd.to_datetime(basic_info_df['ts_fap'], unit='ms')
+        basic_info_df['hour_of_day'] = basic_info_df['ts_fap'].dt.hour
+    except Exception as e:
+        print("Error processing ts_fap for hour extraction:", e)
+        basic_info_df['hour_of_day'] = 0
 
+    df = basic_info_df[['icao24', 'runway_fap', 'ts_fap', 'ts_thr',
+                        'distance_fap_to_thr', 'delta_time_fap_to_thr',
+                        'speed_fap', 'heading_fap', 'weekday', 'hour_of_day']]
     return df
 
+
 def load_models(runways, model_types):
-    # Load models into a dictionary
     models = {}
     for runway in runways:
         for model_type in model_types:
@@ -77,22 +79,22 @@ def load_models(runways, model_types):
     return models
 
 
-# Define the runways and model types
+# Define runways and model types
 runways = ['32L', '32R', '18L', '18R']
 model_types = ['random_forest', 'xgboost', 'lightgbm']
 models = load_models(runways, model_types)
 
 scenario_df = process_scenarios('engage-hackaton')
-print(scenario_df.columns)
-# Prepare a results list
+print("Scenario DataFrame columns:", scenario_df.columns)
+
+# Prepare predictions using the same features used in training
+feature_columns = ['distance_fap_to_thr', 'speed_fap', 'heading_fap', 'weekday', 'hour_of_day']
 results = []
-# Predict delta_time for each row using corresponding runway models
+
 for index, row in scenario_df.iterrows():
     runway = row['runway_fap']
     icao24 = row['icao24']
-
-    # Extract feature as a DataFrame with one row
-    input_data = pd.DataFrame([[row['distance_fap_to_thr']]], columns=['distance_fap_to_thr'])
+    input_data = pd.DataFrame([[row[col] for col in feature_columns]], columns=feature_columns)
 
     for model_type in model_types:
         model_key = f"{runway}_{model_type}"
@@ -105,8 +107,7 @@ for index, row in scenario_df.iterrows():
                 'model': model_type,
                 'seconds_to_threshold': predicted_time
             })
-# Convert results to DataFrame and save
+
 results_df = pd.DataFrame(results)
 results_df.to_csv("predicted_delta_times.csv", index=False)
 print("Saved predictions to predicted_delta_times.csv")
-
