@@ -15,12 +15,14 @@ def compute_score(*, y_prediction_seconds: list, y_true_seconds: list):
         raise ValueError("The length of the lists must be the same")
     individual_scores = []
     for y_prediction, y_true in zip(y_prediction_seconds, y_true_seconds, strict=True):
-        delta = y_prediction+10 - y_true
+        delta = y_prediction - y_true
 
         if delta >= 0:
             score = pow(abs(delta), 2)
         else:
             score = pow(abs(delta), 1)
+
+        print(f"score: {score}")
         individual_scores.append(score)
     final_score = sum(individual_scores)
     return final_score
