@@ -2,15 +2,18 @@ import glob
 import pandas as pd
 import joblib
 import os
+
+from anyio.lowlevel import checkpoint
+
 from tools_calculate import get_day_of_week
 from tools_filter import clean_dataframe_nulls, sort_dataframe, identify_landing_runway_scenario
 from tools_import import load_and_process_parquet_files
 
+results_csv_path = "engage-hackaton/samples/sample_predictions_empty.csv"
 
-def process_scenarios(base_path):
+def process_scenarios(base_path, results_csv_path):
     # Load the checkpoint CSV
-    csv_path = f"{base_path}/samples/sample_predictions_empty.csv"
-    checkpoint_df = pd.read_csv(csv_path)
+    checkpoint_df = pd.read_csv(results_csv_path)
 
     # Filter only for runways of interest
     allowed_runways = {'18L', '18R', '32L', '32R'}
@@ -114,3 +117,16 @@ for index, row in scenario_df.iterrows():
 results_df = pd.DataFrame(results)
 results_df.to_csv("predicted_delta_times.csv", index=False)
 print("Saved predictions to predicted_delta_times.csv")
+
+predicted_df = pd.read_csv("predicted_delta_times.csv")
+sample_df = pd.read_csv(results_csv_path)
+# Step 1: Compute mean predicted seconds_to_threshold per icao24
+mean_predictions = predicted_df.groupby("icao24")["seconds_to_threshold"].mean().reset_index()
+
+# Step 2: Merge the mean predictions into the sample_df based on icao24
+final_sample_df = sample_df.drop(columns=["seconds_to_threshold"], errors="ignore") \
+    .merge(mean_predictions, on="icao24", how="left")
+
+# Save the updated file
+output_path = "sample_predictions_filled.csv"
+final_sample_df.to_csv(output_path, index=False)
