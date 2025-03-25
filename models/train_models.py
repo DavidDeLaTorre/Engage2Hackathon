@@ -9,7 +9,6 @@ from lightgbm import LGBMRegressor
 
 df = pd.read_csv("/icarus/code/engage2hackathon/output/test_1week_training.csv")
 
-
 # ----------------------------
 # Train and Save Model Function
 # ----------------------------
@@ -31,8 +30,7 @@ def train_and_save_model(X, y, model, name):
 # Main Pipeline
 # ----------------------------
 
-features = df.drop(columns=['delta_time'])
-labels = df['delta_time']
+
 
 runways = ['32L', '32R', '18L', '18R']
 
@@ -44,8 +42,8 @@ for runway in runways:
         print(f"No data available for runway {runway}. Skipping...")
         continue
 
-    features = runway_df.drop(columns=['delta_time', 'icao24', 'nearest_runway'])
-    labels = runway_df['delta_time']
+    features = runway_df.drop(columns=['distance_fap_to_thr', 'icao24', 'nearest_runway', 'ts_fap', 'ts_thr'])
+    labels = runway_df['delta_time_fap_to_thr']
 
     # Random Forest
     rf = RandomForestRegressor(n_estimators=100, random_state=42)
