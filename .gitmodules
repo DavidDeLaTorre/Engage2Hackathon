@@ -7,3 +7,6 @@
 [submodule "engage-hackaton-checkpoint"]
 	path = engage-hackaton-checkpoint
 	url = https://github.com/Innaxis/engage-hackaton-checkpoint.git
+[submodule "engage-hackaton-scenarios"]
+	path = engage-hackaton-scenarios
+	url = https://github.com/Innaxis/engage-hackaton-scenarios.git
