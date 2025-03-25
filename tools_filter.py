@@ -1,4 +1,5 @@
 import datetime
+import math
 from typing import List, Optional
 
 import numpy as np
@@ -229,6 +230,7 @@ def identify_segments(df, time_gap_threshold=3600):
 
     return annotated_df, segment_summary
 
+
 def haversine(lat1, lon1, lat2, lon2):
     # Radius of Earth in meters
     R = 6371000
@@ -239,6 +241,7 @@ def haversine(lat1, lon1, lat2, lon2):
     a = sin(dphi/2)**2 + cos(phi1) * cos(phi2) * sin(dlambda/2)**2
     c = 2 * atan2(sqrt(a), sqrt(1 - a))
     return R * c
+
 
 def find_nearest_point(baseline_position: dict, filtered_df: pd.DataFrame):
     # Make sure filtered_df has numeric lat/lon
@@ -275,6 +278,16 @@ def find_nearest_point(baseline_position: dict, filtered_df: pd.DataFrame):
             nearest['ts'] = df.loc[min_idx]['ts']
 
     return nearest
+
+
+def compute_bearing(lat1, lon1, lat2, lon2):
+    # Convert latitude/longitude from degrees to radians.
+    phi1, phi2 = math.radians(lat1), math.radians(lat2)
+    delta_lon = math.radians(lon2 - lon1)
+    x = math.sin(delta_lon) * math.cos(phi2)
+    y = math.cos(phi1) * math.sin(phi2) - math.sin(phi1) * math.cos(phi2) * math.cos(delta_lon)
+    bearing = math.degrees(math.atan2(x, y))
+    return (bearing + 360) % 360
 
 
 def identify_landing_runway(df):
@@ -327,7 +340,7 @@ def identify_landing_runway(df):
         delta_time_real = (nearest_thr['ts'] - nearest_fap['ts']) / 1000
         group_df['delta_time'] = delta_time_real
 
-        # Extract coordinates for the nearest FAP and threshold df points
+        # Extract coordinates for the nearest FAP and threshold points
         lat_fap = group_df.loc[nearest_fap['index'], 'lat_deg']
         lon_fap = group_df.loc[nearest_fap['index'], 'lon_deg']
         lat_thr = group_df.loc[nearest_thr['index'], 'lat_deg']
@@ -351,7 +364,34 @@ def identify_landing_runway(df):
         group_df['distance_fap_to_thr'] = true_distance
         group_df['delta_time_fap_to_thr'] = delta_time_scaled
 
-        # Build the basic info dictionary for this icao24 segment
+        # ----- New Computations at the FAP Point -----
+        # Compute speed, vertical_speed, and heading at the FAP point using the previous data point.
+        # We sort by timestamp to ensure the points are in chronological order.
+        group_df_sorted = group_df.sort_values('ts')
+        try:
+            # Get the position of the FAP point in the sorted dataframe
+            fap_pos = group_df_sorted.index.get_loc(nearest_fap['index'])
+        except Exception as e:
+            fap_pos = None
+
+        if fap_pos is not None and fap_pos > 0:
+            previous_point = group_df_sorted.iloc[fap_pos - 1]
+            # Time difference in seconds
+            dt = (nearest_fap['ts'] - previous_point['ts']) / 1000.0
+            if dt > 0:
+                # Compute horizontal distance in meters between previous point and FAP point.
+                horiz_distance = haversine(lat_fap, lon_fap, previous_point['lat_deg'], previous_point['lon_deg'])
+                speed = horiz_distance / dt  # in m/s
+                # Compute vertical speed using altitude difference (assumes 'altitude' column exists)
+                vertical_speed = (group_df.loc[nearest_fap['index'], 'altitude'] - previous_point['altitude']) / dt
+                # Compute heading (bearing) from the previous point to the FAP point.
+                heading = compute_bearing(previous_point['lat_deg'], previous_point['lon_deg'], lat_fap, lon_fap)
+            else:
+                speed, vertical_speed, heading = None, None, None
+        else:
+            speed, vertical_speed, heading = None, None, None
+
+        # Build the basic info dictionary for this icao24 segment including the new fields.
         basic_info = {
             'icao24': icao24,
             'runway_fap': nearest_fap['runway'],
@@ -366,12 +406,15 @@ def identify_landing_runway(df):
             'distance': distance_real,
             'delta_time': delta_time_real,
             'distance_fap_to_thr': true_distance,
-            'delta_time_fap_to_thr': delta_time_scaled
+            'delta_time_fap_to_thr': delta_time_scaled,
+            'speed_fap': speed,
+            'vertical_speed_fap': vertical_speed,
+            'heading_fap': heading
         }
         basic_info_results.append(basic_info)
+        # ---------------------------------------------
 
         # Extract the ILS segment: the rows between the FAP and THR identified points.
-        # We first get their positional indexes in the group's dataframe.
         try:
             pos_fap = group_df.index.get_loc(nearest_fap['index'])
             pos_thr = group_df.index.get_loc(nearest_thr['index'])
