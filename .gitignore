@@ -27,3 +27,7 @@ venv/
 # Data files
 /data/*
 !/data/*.sh
+!/data/training_december
+!/data/training_november
+!/data/training_january
+!/data/training_february

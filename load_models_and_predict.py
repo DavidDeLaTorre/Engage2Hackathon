@@ -64,6 +64,9 @@ def process_scenarios(base_path):
                         'distance_fap_to_thr', 'delta_time_fap_to_thr',
                         'speed_fap', 'heading_fap', 'weekday', 'hour_of_day',
                         'distance_scenario']]
+    # Add wake vortex index
+    wake_df = pd.read_csv('/icarus/code/engage2hackathon/data/wake_vortex_unique.csv')
+    df = df.merge(wake_df[['icao24', 'wake_vortex_index']], on="icao24", how="left")
     return df
 
 
@@ -89,7 +92,7 @@ scenario_df = process_scenarios('engage-hackaton')
 print("Scenario DataFrame columns:", scenario_df.columns)
 
 # Prepare predictions using the same features used in training
-feature_columns = ['distance_fap_to_thr', 'speed_fap', 'heading_fap', 'weekday', 'hour_of_day']
+feature_columns = ['distance_fap_to_thr', 'speed_fap', 'heading_fap', 'weekday', 'hour_of_day','wake_vortex_index']
 results = []
 
 for index, row in scenario_df.iterrows():
