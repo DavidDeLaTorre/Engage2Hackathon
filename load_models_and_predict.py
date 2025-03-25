@@ -65,7 +65,8 @@ def process_scenarios(base_path, results_csv_path):
 
     df = basic_info_df[['icao24', 'runway_fap', 'ts_fap', 'ts_thr',
                         'distance_fap_to_thr', 'delta_time_fap_to_thr',
-                        'speed_fap', 'heading_fap', 'weekday', 'hour_of_day']]
+                        'speed_fap', 'heading_fap', 'weekday', 'hour_of_day',
+                        'distance_scenario']]
     # Add wake vortex index
     wake_df = pd.read_csv('/icarus/code/engage2hackathon/data/wake_vortex_unique.csv')
     df = df.merge(wake_df[['icao24', 'wake_vortex_index']], on="icao24", how="left")
@@ -106,12 +107,22 @@ for index, row in scenario_df.iterrows():
         model_key = f"{runway}_{model_type}"
         if model_key in models:
             predicted_time = models[model_key].predict(input_data)[0]
+
+            # Scale the predicted time based on the ratio of the new distance_scenario
+            # to the original distance_fap_to_thr.
+            if row['distance_fap_to_thr'] != 0:
+                scale_factor = row['distance_scenario'] / row['distance_fap_to_thr']
+            else:
+                scale_factor = 1  # Avoid division by zero
+            scaled_predicted_time = predicted_time * scale_factor
+
             results.append({
                 'index': index,
                 'icao24': icao24,
                 'runway': runway,
                 'model': model_type,
-                'seconds_to_threshold': predicted_time
+                'seconds_from_fap_to_threshold': predicted_time,
+                'seconds_to_threshold': scaled_predicted_time
             })
 
 results_df = pd.DataFrame(results)
