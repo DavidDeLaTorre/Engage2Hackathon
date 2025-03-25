@@ -249,7 +249,10 @@ def find_nearest_point(baseline_position: dict, filtered_df: pd.DataFrame):
         'distance': float('inf'),
         'runway': None,
         'point': None,
-        'index': None
+        'base_lat': None,
+        'base_lon': None,
+        'index': None,
+        'ts': None
     }
 
     for runway, point in baseline_position.items():
@@ -266,8 +269,9 @@ def find_nearest_point(baseline_position: dict, filtered_df: pd.DataFrame):
             nearest['distance'] = min_distance
             nearest['runway'] = runway
             nearest['point'] = df.loc[min_idx]
+            nearest['base_lat'] = point.latitude
+            nearest['base_lon'] = point.longitude
             nearest['index'] = min_idx
-            # Save the timestamp from the 'ts' field of the corresponding row
             nearest['ts'] = df.loc[min_idx]['ts']
 
     return nearest
@@ -320,10 +324,8 @@ def identify_landing_runway(df):
         group_df['ts_thr'] = nearest_thr['ts']
 
         # Compute and add delta_time to each row in the group
-        delta_time = (nearest_thr['ts'] - nearest_fap['ts']) / 1000
-        group_df['delta_time'] = delta_time
-
-        results.append(group_df)
+        delta_time_real = (nearest_thr['ts'] - nearest_fap['ts']) / 1000
+        group_df['delta_time'] = delta_time_real
 
         # Extract coordinates for the nearest FAP and threshold df points
         lat_fap = group_df.loc[nearest_fap['index'], 'lat_deg']
@@ -332,7 +334,22 @@ def identify_landing_runway(df):
         lon_thr = group_df.loc[nearest_thr['index'], 'lon_deg']
 
         # Compute the distance between the nearest FAP point and the nearest threshold point
-        distance = haversine(lat_fap, lon_fap, lat_thr, lon_thr)
+        distance_real = haversine(lat_fap, lon_fap, lat_thr, lon_thr)
+
+        # Compute the "true" distance between the actual FAP and THR positions
+        true_distance = haversine(nearest_fap["base_lat"], nearest_fap["base_lon"],
+                                  nearest_thr["base_lat"], nearest_thr["base_lon"])
+
+        # Compute a scaling factor (avoid division by zero)
+        scaling_factor = true_distance / distance_real if distance_real != 0 else 1
+
+        # Re-scale the delta_time and distance
+        delta_time_scaled = delta_time_real * scaling_factor
+        distance_scaled = distance_real * scaling_factor  # This should be equal to true_distance
+
+        # Save the scaled values to the group dataframe
+        group_df['distance_fap_to_thr'] = true_distance
+        group_df['delta_time_fap_to_thr'] = delta_time_scaled
 
         # Build the basic info dictionary for this icao24 segment
         basic_info = {
@@ -342,12 +359,14 @@ def identify_landing_runway(df):
             'idx_thr': nearest_thr['index'],
             'ts_fap': nearest_fap['ts'],
             'ts_thr': nearest_thr['ts'],
-            'delta_time': delta_time,
             'lat_deg_fap': lat_fap,
             'lon_deg_fap': lon_fap,
             'lat_deg_thr': lat_thr,
             'lon_deg_thr': lon_thr,
-            'distance_fap_to_thr': distance
+            'distance': distance_real,
+            'delta_time': delta_time_real,
+            'distance_fap_to_thr': true_distance,
+            'delta_time_fap_to_thr': delta_time_scaled
         }
         basic_info_results.append(basic_info)
 
@@ -364,6 +383,9 @@ def identify_landing_runway(df):
         end_pos = max(pos_fap, pos_thr) + 1  # +1 to include the endpoint
         segment_ils = group_df.iloc[start_pos:end_pos]
         segments_ils_results.append(segment_ils)
+
+        # Add group to the results
+        results.append(group_df)
 
     # Concatenate the augmented group dataframes
     df_with_runway = pd.concat(results).reset_index(drop=True)
