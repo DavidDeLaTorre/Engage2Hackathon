@@ -15,7 +15,7 @@ def compute_score(*, y_prediction_seconds: list, y_true_seconds: list):
         raise ValueError("The length of the lists must be the same")
     individual_scores = []
     for y_prediction, y_true in zip(y_prediction_seconds, y_true_seconds, strict=True):
-        delta = y_prediction+10 - y_true
+        delta = y_prediction - y_true
 
         if delta >= 0:
             score = pow(abs(delta), 2)
@@ -26,6 +26,8 @@ def compute_score(*, y_prediction_seconds: list, y_true_seconds: list):
     return final_score
 
 real_values = [240.99100017547607, 327.16799998283386]
+df_real_values = pd.read_csv('engage-hackaton-checkpoint/checkpoint_solution.csv')
+real_values = df_real_values['time_to_threshold_s'].tolist()
 
 df = pd.read_csv('predicted_delta_times.csv')
 model_seconds = {

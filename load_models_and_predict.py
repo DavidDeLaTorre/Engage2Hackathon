@@ -10,7 +10,8 @@ from tools_import import load_and_process_parquet_files
 
 results_csv_path = "engage-hackaton-checkpoint/checkpoint_YourTeamName_option1.csv"
 base_path = "engage-hackaton-checkpoint"
-
+#results_csv_path = "engage-hackaton/samples/sample_predictions_empty.csv"
+#base_path = "engage-hackaton"
 
 def process_scenarios(base_path, results_csv_path):
     # Load the checkpoint CSV
@@ -112,7 +113,8 @@ for index, row in scenario_df.iterrows():
             # Scale the predicted time based on the ratio of the new distance_scenario
             # to the original distance_fap_to_thr.
             if row['distance_fap_to_thr'] != 0:
-                scale_factor = row['distance_scenario'] / row['distance_fap_to_thr']
+                #scale_factor = row['distance_scenario'] / row['distance_fap_to_thr']
+                scale_factor = 1
             else:
                 scale_factor = 1  # Avoid division by zero
             scaled_predicted_time = predicted_time * scale_factor
