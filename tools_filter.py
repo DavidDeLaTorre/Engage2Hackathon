@@ -655,6 +655,15 @@ def identify_landing_runway_scenario(df):
         delta_time_scaled = delta_time_real * scaling_factor
         distance_scaled = distance_real * scaling_factor  # This should be equal to true_distance
 
+        # --- New Computations for the Scenario Pair ---
+        # Compute the distance between the real FAP point and the true threshold (using base coordinates)
+        distance_scenario = haversine(
+            lat_fap, lon_fap,
+            nearest_thr["base_lat"], nearest_thr["base_lon"]
+        )
+        # Compute the corresponding time assuming a constant speed (scale delta_time_real proportionally)
+        time_scenario = delta_time_real * (distance_scenario / distance_real) if distance_real != 0 else delta_time_real
+
         # Save the scaled values to the group dataframe
         group_df['distance_fap_to_thr'] = true_distance
         group_df['delta_time_fap_to_thr'] = delta_time_scaled
@@ -704,7 +713,9 @@ def identify_landing_runway_scenario(df):
             'delta_time_fap_to_thr': delta_time_scaled,
             'speed_fap': speed,
             'vertical_speed_fap': vertical_speed,
-            'heading_fap': heading
+            'heading_fap': heading,
+            'distance_scenario': distance_scenario,
+            'time_scenario': time_scenario
         }
         basic_info_results.append(basic_info)
         # ---------------------------------------------
