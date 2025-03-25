@@ -122,7 +122,7 @@ for index, row in scenario_df.iterrows():
                 'icao24': icao24,
                 'runway': runway,
                 'model': model_type,
-                'seconds_from_fap_to_threshold': predicted_time,
+                'seconds_from_fap_to_threshold': predicted_time+5,
                 'seconds_to_threshold': scaled_predicted_time
             })
 

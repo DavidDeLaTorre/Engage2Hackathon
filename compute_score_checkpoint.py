@@ -27,20 +27,11 @@ def compute_score(*, y_prediction_seconds: list, y_true_seconds: list):
 
 df_real_values = pd.read_csv('engage-hackaton-checkpoint/checkpoint_solution.csv')
 
-df = pd.read_csv('predicted_delta_times.csv')
-model_seconds = {
-    model: df[df['model'] == model]['seconds_to_threshold'].tolist()
-    for model in df['model'].unique()
-}
+df = pd.read_csv('sample_predictions_filled.csv')
 
 real_values_seconds = df_real_values['time_to_threshold_s'].tolist()
+prediction_values_seconds = df['seconds_to_threshold'].tolist()
 
 
-print(len(real_values_seconds))
-
-print(len(model_seconds["random_forest"]))
-
-
-for model in model_seconds:
-    score = compute_score(y_prediction_seconds=model_seconds[model], y_true_seconds=real_values_seconds)
-    print(f"Score of {model} predictions:", score)
+score = compute_score(y_prediction_seconds=prediction_values_seconds, y_true_seconds=real_values_seconds)
+print(f"Score of  predictions:", score)
