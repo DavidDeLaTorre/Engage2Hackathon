@@ -46,9 +46,9 @@ def process_adsb_data(year, month, day, delta_days=0, output_dir="output", base_
 
     # Build output prefix based on date or date range
     if start_date == end_date:
-        output_prefix = os.path.join(output_dir, f"test_{start_date.strftime('%Y_%m_%d')}")
+        output_prefix = os.path.join(output_dir, f"save_{start_date.strftime('%Y_%m_%d')}")
     else:
-        output_prefix = os.path.join(output_dir, f"test_{start_date.strftime('%Y_%m_%d')}_to_{end_date.strftime('%Y_%m_%d')}")
+        output_prefix = os.path.join(output_dir, f"save_{start_date.strftime('%Y_%m_%d')}_to_{end_date.strftime('%Y_%m_%d')}")
 
     # Define cache file names using the output prefix
     cache_file = f"{output_prefix}_cached_df.pkl"
