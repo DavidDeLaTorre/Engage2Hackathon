@@ -8,7 +8,7 @@ from tools_calculate import (
     compute_segment_delta_times,
     plot_delta_time_pdf,
     compute_delta_time_statistics,
-    plot_delta_time_pdf_by_runway
+    plot_delta_time_pdf_by_runway, get_day_of_week
 )
 from tools_export import (
     export_trajectories_to_csv,
@@ -150,10 +150,16 @@ def process_adsb_data_1day(year, month, day, delta_days=0, output_dir="output", 
 
     plot_delta_time_pdf_by_runway(normal_basic_info_df, output_prefix=output_prefix)
 
-    # --- Exporting Results ---
+    # --- Training subset ---
+
     df_training_subset = normal_basic_info_df[
         ['icao24', 'runway_fap', 'ts_fap', 'ts_thr', 'delta_time', 'distance_fap_to_thr']
     ]
+
+    # Add a new column 'weekday' computed from 'ts_fap'
+    df_training_subset['weekday'] = df_training_subset['ts_fap'].apply(get_day_of_week)
+
+    # --- Exporting Results ---
 
     print("Exporting training CSV ...")
     export_trajectories_to_csv(df_training_subset, output_prefix + '_training.csv')
