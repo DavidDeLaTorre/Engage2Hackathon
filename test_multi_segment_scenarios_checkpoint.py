@@ -26,7 +26,7 @@ import pandas as pd
 
 from tools_calculate import compute_segment_delta_times, plot_delta_time_pdf, compute_delta_time_statistics, \
     plot_delta_time_pdf_by_runway
-from tools_export import export_trajectories_to_csv, export_trajectories_to_kml, export_trajectories_to_kml_by_icao24
+from tools_export import export_trajectories_to_csv, export_trajectories_to_kml
 from tools_filter import identify_segments, sort_dataframe, filter_dataframe_by_bounds, filter_dataframe_by_altitude, \
     clean_dataframe_nulls, extract_adsb_columns, identify_landing_runway
 from tools_import import load_and_process_parquet_files, load_parquet_files
