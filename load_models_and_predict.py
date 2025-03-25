@@ -8,7 +8,9 @@ from tools_calculate import get_day_of_week
 from tools_filter import clean_dataframe_nulls, sort_dataframe, identify_landing_runway_scenario
 from tools_import import load_and_process_parquet_files
 
-results_csv_path = "engage-hackaton/samples/sample_predictions_empty.csv"
+results_csv_path = "engage-hackaton-checkpoint/checkpoint_YourTeamName_option1.csv"
+base_path = "engage-hackaton-checkpoint"
+
 
 def process_scenarios(base_path, results_csv_path):
     # Load the checkpoint CSV
@@ -32,7 +34,7 @@ def process_scenarios(base_path, results_csv_path):
 
     # Load parquet files that match the filtered ICAO24s
     df_list = []
-    folder_paths = glob.glob(f"{base_path}/samples/*.parquet")
+    folder_paths = glob.glob(f"{base_path}/scenarios/*.parquet")
     for file in folder_paths:
         df = load_and_process_parquet_files(
             [file],
@@ -90,7 +92,7 @@ runways = ['32L', '32R', '18L', '18R']
 model_types = ['random_forest', 'xgboost', 'lightgbm']
 models = load_models(runways, model_types)
 
-scenario_df = process_scenarios('engage-hackaton', results_csv_path)
+scenario_df = process_scenarios(base_path, results_csv_path)
 print("Scenario DataFrame columns:", scenario_df.columns)
 
 # Prepare predictions using the same features used in training
