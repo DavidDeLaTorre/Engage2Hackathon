@@ -1,8 +1,17 @@
 import datetime
 
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+
+def get_day_of_week(timestamp_ms: int) -> str:
+    # Convert the Unix timestamp from milliseconds to seconds
+    timestamp_sec = timestamp_ms / 1000.0
+    # Create a datetime object from the timestamp
+    dt = datetime.datetime.fromtimestamp(timestamp_sec)
+    # Return the day of the week (full name)
+    return dt.strftime('%A')
 
 
 def compute_segment_delta_times(df: pd.DataFrame) -> pd.DataFrame:
@@ -154,6 +163,8 @@ def plot_delta_time_pdf_by_runway(basic_info_df, output_prefix : str = None) -> 
             plt.close()
         else:
             plt.show()
+
+
 def find_outliers(basic_info_df):
     for runway, runway_df in basic_info_df.groupby('runway_fap'):
         outliers = runway_df[runway_df['delta_time'] < 165]
