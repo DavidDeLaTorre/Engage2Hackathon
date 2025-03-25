@@ -131,7 +131,9 @@ def process_adsb_data_1day(year, month, day, delta_days=0, output_dir="output", 
     # Compute and print statistics by runway
     stats_by_runway = {}
     for runway, runway_df in normal_basic_info_df.groupby('runway_fap'):
-        stats_by_runway[runway] = compute_delta_time_statistics(runway_df)
+        output_prefix_rwy = output_prefix + f"_{runway}"
+        stats_by_runway[runway] = compute_delta_time_statistics(
+            runway_df, output_prefix=output_prefix_rwy)
         print(f"Statistics for Runway {runway}:")
         for stat_name, value in stats_by_runway[runway].items():
             print(f"  {stat_name}: {value}")
