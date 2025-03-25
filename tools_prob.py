@@ -17,17 +17,17 @@ def get_time(runway:str) -> float:
     std_dev = 0.0
 
     if runway == "32L":
-        mean = 129.68137019790453
-        std_dev = 9.574605947223727
+        mean = 128.7392496146627
+        std_dev = 7.963354325500991
     elif runway == "32R":
-        mean = 200.13922750929368
-        std_dev = 13.83752166133672
+        mean = 197.4568239859173
+        std_dev = 10.448288020949978
     elif runway == "18L":
-        mean = 222.62294000000003
-        std_dev = 11.358378803207032
+        mean = 230.94809645104894
+        std_dev = 14.592161110687595
     elif runway == "18R":
-        mean = 287.08779999999996
-        std_dev = 12.777681660701294
+        mean = 304.629395044782
+        std_dev = 20.61572552976455
 
     return sample_greater_than_mean(1, dist_mean=mean, loc=mean, scale=std_dev)[0]
 
