@@ -6,13 +6,6 @@ from tools_process import process_adsb_data
 
 
 def main():
-    """
-    Main function to process ADS-B data, filter by provided flights (if any),
-    and export the results to CSV and KML files.
-
-    Command-line arguments:
-        <input_parquet_file> <output_csv_file> <output_kml_file> [icao24_1 icao24_2 ...]
-    """
 
     # Date range
     year = 2024
