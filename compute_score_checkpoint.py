@@ -28,11 +28,12 @@ def compute_score(*, y_prediction_seconds: list, y_true_seconds: list):
     return final_score
 
 df_real_values = pd.read_csv('engage-hackaton-checkpoint/checkpoint_solution.csv')
-df_real_values = pd.read_csv('engage-hackaton-checkpoint/checkpoint_solution.csv')
 
-df = pd.read_csv('sample_predictions_filled.csv')
-df = pd.read_csv('results/checkpoint_RAD_option2.csv')
-df = pd.read_csv('results/checkpoint_RAD_option2_new.csv')
+#df = pd.read_csv('sample_predictions_filled.csv')
+#df = pd.read_csv('results/checkpoint_RAD_option2.csv')
+#df = pd.read_csv('results/checkpoint_RAD_option2_new.csv')
+df = pd.read_csv('results/checkpoint_RAD_option2_nov_feb.csv')
+
 
 
 real_values_seconds = df_real_values['time_to_threshold_s'].tolist()

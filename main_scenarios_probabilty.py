@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
 import csv
-from tools_prob import get_time, get_time_full
+from tools_prob import get_time_nov_feb, get_time_nov
 
 def main():
     # Replace with your actual file path
     #file_path = 'engage-hackaton-checkpoint/checkpoint_YourTeamName_option1.csv'
-    #output_file = 'results/checkpoint_RAD_option2_new.csv'
+    #output_file = 'results/checkpoint_RAD_option2_nov_feb.csv'
 
     file_path = 'engage-hackaton-scenarios/predictions_YourTeamName.csv'
     output_file = 'results/predictions_RAD.csv'
@@ -44,7 +44,8 @@ def main():
                     break
 
             # Ask the timer, to compute the runway
-            landing_time = get_time(runway_to_land)
+            landing_time = get_time_nov_feb(runway_to_land)
+            landing_time = get_time_nov(runway_to_land)
 
             # Save the value
             row['seconds_to_threshold'] = landing_time
