@@ -5,13 +5,13 @@ import numpy as np
 import pandas as pd
 
 
-def get_day_of_week(timestamp_ms: int) -> str:
+def get_day_of_week(timestamp_ms: int) -> int:
     # Convert the Unix timestamp from milliseconds to seconds
     timestamp_sec = timestamp_ms / 1000.0
     # Create a datetime object from the timestamp
     dt = datetime.datetime.fromtimestamp(timestamp_sec)
-    # Return the day of the week (full name)
-    return dt.strftime('%A')
+    # Return the day of the week as an integer (0=Monday, 6=Sunday)
+    return dt.weekday()
 
 
 def compute_segment_delta_times(df: pd.DataFrame) -> pd.DataFrame:
