@@ -2,20 +2,25 @@ import pandas as pd
 import joblib
 import os
 
+def load_models(runways, model_types):
+    # Load models into a dictionary
+    models = {}
+    for runway in runways:
+        for model_type in model_types:
+            model_path = f"models/{runway}_{model_type}_model.pkl"
+            if os.path.exists(model_path):
+                models[f"{runway}_{model_type}"] = joblib.load(model_path)
+                print(f"Loaded model: {runway}_{model_type}")
+            else:
+                print(f"Model not found: {runway}_{model_type}")
+    return models
+
+
 # Define the runways and model types
 runways = ['32L', '32R', '18L', '18R']
 model_types = ['random_forest', 'xgboost', 'lightgbm']
+models = load_models(runways, model_types)
 
-# Load models into a dictionary
-models = {}
-for runway in runways:
-    for model_type in model_types:
-        model_path = f"models/{runway}_{model_type}_model.pkl"
-        if os.path.exists(model_path):
-            models[f"{runway}_{model_type}"] = joblib.load(model_path)
-            print(f"Loaded model: {runway}_{model_type}")
-        else:
-            print(f"Model not found: {runway}_{model_type}")
 
 # Load the new dataset to predict (assume preprocessed and has 'runway' column)
 df_new = pd.read_csv("new_adsb_data.csv")
