@@ -74,6 +74,9 @@ def process_scenarios(base_path, results_csv_path):
     df = df.merge(wake_df[['icao24', 'wake_vortex_index']], on="icao24", how="left")
     return df
 
+results_csv_path = "engage-hackaton-scenarios/predictions_YourTeamName.csv"
+base_path = "engage-hackaton-scenarios"
+
 
 def load_models(runways, model_types):
     models = {}
