@@ -4,7 +4,7 @@ import pandas as pd
 import joblib
 import os
 
-from tools_filter import clean_dataframe_nulls, sort_dataframe, identify_landing_runway
+from tools_filter import clean_dataframe_nulls, sort_dataframe, identify_landing_runway_scenario
 from tools_import import load_and_process_parquet_files
 
 def process_scenarios(base_path):
@@ -54,7 +54,7 @@ def process_scenarios(base_path):
         how='left'
     )
     df_with_runway['segment'] = 0
-    df_with_runway, basic_info_df, df_segments_ils = identify_landing_runway(df_with_runway)
+    df_with_runway, basic_info_df, df_segments_ils = identify_landing_runway_scenario(df_with_runway)
 
     df = basic_info_df[
         ['icao24', 'runway_fap', 'ts_fap', 'ts_thr',
