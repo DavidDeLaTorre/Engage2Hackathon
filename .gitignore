@@ -31,3 +31,4 @@ venv/
 !/data/training_november
 !/data/training_january
 !/data/training_february
+!/data/wake_vortex_unique.csv
