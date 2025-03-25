@@ -67,7 +67,7 @@ def process_scenarios(base_path, results_csv_path):
                         'speed_fap', 'heading_fap', 'weekday', 'hour_of_day',
                         'distance_scenario']]
     # Add wake vortex index
-    wake_df = pd.read_csv('/icarus/code/engage2hackathon/data/wake_vortex_unique.csv')
+    wake_df = pd.read_csv('data/wake_vortex_unique.csv')
     df = df.merge(wake_df[['icao24', 'wake_vortex_index']], on="icao24", how="left")
     return df
 
