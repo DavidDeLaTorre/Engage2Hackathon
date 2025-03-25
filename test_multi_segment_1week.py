@@ -2,7 +2,7 @@
 """
 This script processes ADS-B data stored in a parquet file, for an entire week
 """
-from tools_process import process_adsb_data
+from tools_process import process_adsb_data_1day
 
 
 def main():
@@ -14,7 +14,7 @@ def main():
     delta_days = 7
 
     # Process a one-week period
-    process_adsb_data(year, month, day, delta_days=delta_days)
+    process_adsb_data_1day(year, month, day, delta_days=delta_days)
 
 
 if __name__ == '__main__':
