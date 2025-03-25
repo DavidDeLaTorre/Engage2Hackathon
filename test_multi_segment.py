@@ -68,7 +68,7 @@ def main():
     min_alt, max_alt = [-1000, 10000]  # [ft]
     df = filter_dataframe_by_altitude(df, min_alt, max_alt)
 
-    df = identify_landing_runway(FAP_position, df)
+    df = identify_landing_runway(df)
 
     # Save the filtered DataFrame to CSV
     export_trajectories_to_csv(df, output_csv)
