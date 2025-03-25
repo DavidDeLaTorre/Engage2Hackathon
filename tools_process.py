@@ -8,7 +8,7 @@ from tools_calculate import (
     compute_segment_delta_times,
     plot_delta_time_pdf,
     compute_delta_time_statistics,
-    plot_delta_time_pdf_by_runway
+    plot_delta_time_pdf_by_runway, get_day_of_week
 )
 from tools_export import (
     export_trajectories_to_csv,
@@ -122,10 +122,11 @@ def process_adsb_data_1day(year, month, day, delta_days=0, output_dir="output", 
     max_delta = 500
 
     normal_basic_info_df = basic_info_df[
-        (basic_info_df['delta_time'] >= min_delta) & (basic_info_df['delta_time'] <= max_delta)
+        (basic_info_df['delta_time_fap_to_thr'] >= min_delta) &
+        (basic_info_df['delta_time_fap_to_thr'] <= max_delta)
     ]
 
-    stats = compute_delta_time_statistics(normal_basic_info_df)
+    stats = compute_delta_time_statistics(normal_basic_info_df, output_prefix=output_prefix)
 
     # Compute and print statistics by runway
     stats_by_runway = {}
@@ -136,24 +137,28 @@ def process_adsb_data_1day(year, month, day, delta_days=0, output_dir="output", 
             print(f"  {stat_name}: {value}")
         print()
 
-    normal_df_with_runway = df_with_runway[
-        (df_with_runway['delta_time'] >= min_delta) & (df_with_runway['delta_time'] <= max_delta)
-    ]
-    df_times = compute_segment_delta_times(normal_df_with_runway)
-    plot_delta_time_pdf(df_times, output_prefix=output_prefix)
-
+    # PDF plots global
     normal_df_segments_ils = df_segments_ils[
-        (df_segments_ils['delta_time'] >= min_delta) & (df_segments_ils['delta_time'] <= max_delta)
+        (df_segments_ils['delta_time_fap_to_thr'] >= min_delta) &
+        (df_segments_ils['delta_time_fap_to_thr'] <= max_delta)
     ]
     df_times = compute_segment_delta_times(normal_df_segments_ils)
     plot_delta_time_pdf(df_times, output_prefix=output_prefix)
 
+    # PDF plots per runway
     plot_delta_time_pdf_by_runway(normal_basic_info_df, output_prefix=output_prefix)
 
-    # --- Exporting Results ---
+    # --- Training subset ---
+
     df_training_subset = normal_basic_info_df[
-        ['icao24', 'runway_fap', 'ts_fap', 'ts_thr', 'delta_time', 'distance_fap_to_thr']
-    ]
+        ['icao24', 'runway_fap', 'ts_fap', 'ts_thr',
+         'distance_fap_to_thr', 'delta_time_fap_to_thr']
+    ].copy()  # Create a copy to avoid SettingWithCopyWarning
+
+    # Add a new column 'weekday' computed from 'ts_fap'
+    df_training_subset['weekday'] = df_training_subset['ts_fap'].apply(get_day_of_week)
+
+    # --- Exporting Results ---
 
     print("Exporting training CSV ...")
     export_trajectories_to_csv(df_training_subset, output_prefix + '_training.csv')

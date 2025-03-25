@@ -1,8 +1,17 @@
 import datetime
 
-import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+
+
+def get_day_of_week(timestamp_ms: int) -> str:
+    # Convert the Unix timestamp from milliseconds to seconds
+    timestamp_sec = timestamp_ms / 1000.0
+    # Create a datetime object from the timestamp
+    dt = datetime.datetime.fromtimestamp(timestamp_sec)
+    # Return the day of the week (full name)
+    return dt.strftime('%A')
 
 
 def compute_segment_delta_times(df: pd.DataFrame) -> pd.DataFrame:
@@ -58,12 +67,14 @@ def compute_segment_delta_times(df: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(results)
 
 
-def compute_delta_time_statistics(segment_df: pd.DataFrame) -> dict:
+def compute_delta_time_statistics(segment_df: pd.DataFrame, output_prefix : str = None) -> dict:
     """
     Computes statistics for the 'delta_time' column in the provided DataFrame.
 
     Parameters:
       segment_df (pd.DataFrame): A DataFrame that must contain a 'delta_time' column.
+      output_prefix (str): A string prefix used for the output file name. If provided,
+                           the statistics will be written to a CSV file.
 
     Returns:
       dict: A dictionary with statistics including count, min, max, mean, median,
@@ -80,6 +91,14 @@ def compute_delta_time_statistics(segment_df: pd.DataFrame) -> dict:
         '25%': delta_times.quantile(0.25),
         '75%': delta_times.quantile(0.75)
     }
+
+    # Print statis if required
+    if output_prefix:
+        filename = f"{output_prefix}_statistics.csv"
+        # Convert the stats dictionary to a DataFrame
+        stats_df = pd.DataFrame(list(stats.items()), columns=["Statistic", "Value"])
+        stats_df.to_csv(filename, index=False)
+
     return stats
 
 
@@ -136,24 +155,26 @@ def plot_delta_time_pdf(segment_df: pd.DataFrame, bins: int = 50, output_prefix:
 
 
 # Plot delta_time PDF for each runway
-def plot_delta_time_pdf_by_runway(basic_info_df, output_prefix : str = None) -> None:
+def plot_delta_time_pdf_by_runway(basic_info_df, plot_field: str = 'delta_time', output_prefix : str = None) -> None:
     # Group the basic_info_df by runway
     for runway, runway_df in basic_info_df.groupby('runway_fap'):
         plt.figure()
         # Plot histogram as a PDF (normalized histogram)
-        plt.hist(runway_df['delta_time'], bins=20, density=True, alpha=0.7)
-        plt.title(f"Delta Time PDF for Runway {runway}")
+        plt.hist(runway_df[plot_field], bins=20, density=True, alpha=0.7)
+        plt.title(f"Delta Time PDF for Runway {runway} | {plot_field}")
         plt.xlabel("Delta Time (seconds)")
         plt.ylabel("Density")
         plt.grid(True)
 
         # Save or display the plot
         if output_prefix is not None:
-            filename = f"{output_prefix}_runway_{runway}_delta_time_pdf.png"
+            filename = f"{output_prefix}_{runway}_{plot_field}_pdf.png"
             plt.savefig(filename)
             plt.close()
         else:
             plt.show()
+
+
 def find_outliers(basic_info_df):
     for runway, runway_df in basic_info_df.groupby('runway_fap'):
         outliers = runway_df[runway_df['delta_time'] < 165]
