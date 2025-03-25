@@ -190,27 +190,3 @@ The preview of the first 5 rows (across 137 columns) reveals:
   since not all aircraft or messages will include the full range of optional parameters.
 
 ---
-
-
-## Instructions to run the campaign \<INSERT NAME OF THE CAMPAIGN HERE>
-
-### Traceability
-- Trello card: \<URL HERE>
-- Main repository tag: \<TAG NAME HERE>
-- Release of XXXX: \<RELEASE PATH HERE>
-- etc.
-
-### Checklist before campaign launch
-- Ensure there are no commits pending in project's repository.
-- Create new cases folder and ensure it's clean (`/icarus/cases/<your_project>/<campaign-xxx>`)
-- Main launch script is calling `traceability.sh` and point the output to the cases folder of this campaign.
-
-### Step 01: \<SHORT DESCRIPTION>
-Long description about which specific script to execute, how to execute it, 
-which cmd arguments to use, and any additional steps or information. 
-Use absolute paths for everything.
-
-> Some footnotes about extra stuff to take into account.
-
-### Step 02: \<SHORT DESCRIPTION>
-etc.
