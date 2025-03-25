@@ -65,46 +65,29 @@ def extract_adsb_columns(df: pd.DataFrame, columns: list = None) -> pd.DataFrame
     return extracted_df
 
 
-def clean_dataframe_nulls(
-        df: pd.DataFrame,
-        fields: Optional[List[str]] = None,
-        sort_by: str = 'ts'
-) -> pd.DataFrame:
+def clean_dataframe_nulls(df: pd.DataFrame, fields: Optional[List[str]] = None) -> pd.DataFrame:
     """
-    Clean missing values in a time series using interpolation and forward/backward fill.
+    Filter the ADS-B data to remove rows with missing altitude or latitude.
 
     Args:
         df (pd.DataFrame): The raw ADS-B data.
-        fields (list, optional): Fields to clean. Defaults to ['lat_deg', 'lon_deg', 'altitude', 'ts'].
-        sort_by (str): Timestamp column to sort by before filling.
+        fields (list, optional): List of fields to remove nulls from.
+            If None, ['lat_deg', 'lon_deg', 'altitude', 'ts'] are processed.
 
     Returns:
-        pd.DataFrame: Cleaned DataFrame with minimal data loss.
+        pd.DataFrame: The filtered DataFrame.
     """
+
+    # Default fields to clean-up
     if fields is None:
         fields = ['lat_deg', 'lon_deg', 'altitude', 'ts']
 
-    df = df.copy()
-
-    # Sort by time to maintain sequence logic
-    if sort_by in df.columns:
-        df.sort_values(by=sort_by, inplace=True)
-
+    # Clean-up rows with null fields
     for field in fields:
-        if field not in df.columns:
-            continue
-
-        null_count_before = df[field].isna().sum()
-
-        # Interpolate then fill edges with ffill/bfill
-        df[field] = df[field].interpolate(method='linear', limit_direction='both')
-        df[field] = df[field].fillna(method='ffill').fillna(method='bfill')
-
-        null_count_after = df[field].isna().sum()
-        print(f"[{field}] Nulls before: {null_count_before}, after: {null_count_after}")
+        df = df[df[field].notna()]
+        print(f"Rows after filtering by provided icao24 values {fields}: {len(df)}")
 
     return df
-
 
 
 def filter_dataframe_by_icao(df: pd.DataFrame, icao24_list: list = None) -> pd.DataFrame:
