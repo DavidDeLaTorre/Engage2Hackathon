@@ -6,8 +6,8 @@ from sklearn.metrics import mean_absolute_error, r2_score
 from xgboost import XGBRegressor
 from lightgbm import LGBMRegressor
 
-# Load your CSV
-df = pd.read_csv("filtered_adsb_data.csv")
+
+df = pd.read_csv("/icarus/code/engage2hackathon/output/test_1week_training.csv")
 
 
 # ----------------------------
@@ -24,7 +24,7 @@ def train_and_save_model(X, y, model, name):
     print("MAE:", mean_absolute_error(y_test, y_pred))
     print("R^2:", r2_score(y_test, y_pred))
 
-    joblib.dump(model, f"models/{name}_model.pkl")
+    joblib.dump(model, f"{name}_model.pkl")
     print(f"Saved {name} model to models/{name}_model.pkl")
 
 # ----------------------------
@@ -38,14 +38,14 @@ runways = ['32L', '32R', '18L', '18R']
 
 for runway in runways:
     print(f"\nTraining models for Runway {runway}...")
-    runway_df = df[df['runway'] == runway]
+    runway_df = df[df['nearest_runway'] == runway]
 
     if runway_df.empty:
         print(f"No data available for runway {runway}. Skipping...")
         continue
 
-    features = runway_df[['altitude', 'ground_speed', 'vertical_speed', 'distance_to_runway']]
-    labels = runway_df['time_to_threshold']
+    features = runway_df.drop(columns=['delta_time', 'icao24', 'nearest_runway'])
+    labels = runway_df['delta_time']
 
     # Random Forest
     rf = RandomForestRegressor(n_estimators=100, random_state=42)

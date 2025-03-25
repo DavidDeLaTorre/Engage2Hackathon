@@ -1,3 +1,5 @@
+import datetime
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -138,3 +140,12 @@ def plot_delta_time_pdf_by_runway(basic_info_df):
         plt.ylabel("Density")
         plt.grid(True)
         plt.show()
+
+def find_outliers(basic_info_df):
+    for runway, runway_df in basic_info_df.groupby('runway_fap'):
+        outliers = runway_df[runway_df['delta_time'] < 165]
+        #date_str = datetime.datetime.fromtimestamp(epoch_time).strftime('%Y-%m-%d %H:%M:%S')
+        print(runway, len(outliers))
+        for icao24, ts_fap in zip(outliers["icao24"], outliers["ts_fap"]):
+            date_str = datetime.datetime.fromtimestamp(ts_fap/1000).strftime('%Y-%m-%d %H:%M:%S')
+            print(f"{icao24}\t{date_str}")

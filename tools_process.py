@@ -26,7 +26,7 @@ from tools_filter import (
 from tools_import import load_parquet_files
 
 
-def process_adsb_data(year, month, day, delta_days=0, output_dir="output", base_path="data/engage-hackathon-2025"):
+def process_adsb_data_1day(year, month, day, delta_days=0, output_dir="output", base_path="data/engage-hackathon-2025"):
     """
     Process ADS-B data for a given date or date range.
 
@@ -46,9 +46,9 @@ def process_adsb_data(year, month, day, delta_days=0, output_dir="output", base_
 
     # Build output prefix based on date or date range
     if start_date == end_date:
-        output_prefix = os.path.join(output_dir, f"test_{start_date.strftime('%Y_%m_%d')}")
+        output_prefix = os.path.join(output_dir, f"save_{start_date.strftime('%Y_%m_%d')}")
     else:
-        output_prefix = os.path.join(output_dir, f"test_{start_date.strftime('%Y_%m_%d')}_to_{end_date.strftime('%Y_%m_%d')}")
+        output_prefix = os.path.join(output_dir, f"save_{start_date.strftime('%Y_%m_%d')}_to_{end_date.strftime('%Y_%m_%d')}")
 
     # Define cache file names using the output prefix
     cache_file = f"{output_prefix}_cached_df.pkl"
@@ -67,8 +67,8 @@ def process_adsb_data(year, month, day, delta_days=0, output_dir="output", base_
             base_path=base_path
         )
         if df.empty:
-            print("No data found for the specified period.")
-            sys.exit(1)
+            print(f"No data found for the specified period: {output_prefix}")
+            return
         print(f"Saving processed dataframe to cache file {cache_file} ...")
         df.to_pickle(cache_file)
 
