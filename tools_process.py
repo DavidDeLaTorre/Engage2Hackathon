@@ -21,12 +21,12 @@ from tools_filter import (
     filter_dataframe_by_altitude,
     clean_dataframe_nulls,
     extract_adsb_columns,
-    identify_landing_runway
+    identify_landing_runway, identify_landing_runway_backwards
 )
 from tools_import import load_parquet_files
 
 
-def process_adsb_data_1day(year, month, day, delta_days=0, output_dir="output", base_path="data/engage-hackathon-2025"):
+def process_adsb_data_1day(year, month, day, delta_days=0, output_dir="output", base_path="data/engage-hackathon-2025", model: str="fap"):
     """
     Process ADS-B data for a given date or date range.
 
@@ -79,7 +79,7 @@ def process_adsb_data_1day(year, month, day, delta_days=0, output_dir="output", 
     else:
         print("Cache file2 not found. Processing data ...")
         print("Cleaning dataframe nulls ...")
-        columns_to_clean = ['altitude', 'lat_deg']
+        columns_to_clean = ['altitude', 'lat_deg', 'lon_deg']
         df_filtered = clean_dataframe_nulls(df, columns_to_clean)
 
         print("Extracting ADS-B columns ...")
@@ -112,7 +112,13 @@ def process_adsb_data_1day(year, month, day, delta_days=0, output_dir="output", 
         df_with_runway, basic_info_df, df_segments_ils = pd.read_pickle(cache_file3)
     else:
         print("Cache file for landing runway not found. Processing landing runway results ...")
-        df_with_runway, basic_info_df, df_segments_ils = identify_landing_runway(df)
+        if model == "fap":
+            df_with_runway, basic_info_df, df_segments_ils = identify_landing_runway(df)
+        elif model == "backwards":
+            df_with_runway, basic_info_df, df_segments_ils = identify_landing_runway_backwards(df)
+        else:
+            print("Model not recognized.")
+
         print(f"Saving landing runway results to cache file {cache_file3} ...")
         pd.to_pickle((df_with_runway, basic_info_df, df_segments_ils), cache_file3)
 
@@ -120,6 +126,8 @@ def process_adsb_data_1day(year, month, day, delta_days=0, output_dir="output", 
     # Define time thresholds (in seconds)
     min_delta = 100
     max_delta = 500
+
+    print(basic_info_df)
 
     normal_basic_info_df = basic_info_df[
         (basic_info_df['delta_time_fap_to_thr'] >= min_delta) &

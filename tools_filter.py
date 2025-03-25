@@ -243,6 +243,55 @@ def haversine(lat1, lon1, lat2, lon2):
     return R * c
 
 
+def calculate_bearing(lat1, lon1, lat2, lon2):
+    """
+    Calculate the bearing between two points.
+    All args must be in decimal degrees.
+    """
+    lat1, lon1, lat2, lon2 = map(np.radians, [lat1, lon1, lat2, lon2])
+    dlon = lon2 - lon1
+
+    x = np.sin(dlon) * np.cos(lat2)
+    y = np.cos(lat1)*np.sin(lat2) - np.sin(lat1)*np.cos(lat2)*np.cos(dlon)
+
+    initial_bearing = np.arctan2(x, y)
+    initial_bearing = np.degrees(initial_bearing)
+    compass_bearing = (initial_bearing + 360) % 360
+
+    return compass_bearing
+
+def find_last_no_turning_point(group_df, nearest_thr):
+    runway = nearest_thr['runway']
+    index = nearest_thr['index']
+    runway_heading = float(runway[:2])*10
+    offset = 10
+
+    group_df['bearing'] = group_df.apply(lambda row: calculate_bearing(row['lat_deg'], row['lon_deg'], nearest_thr["point"]["lat_deg"], nearest_thr["point"]["lon_deg"]), axis=1)
+
+    nearest = {
+        'distance': float('inf'),
+        'runway': None,
+        'point': None,
+        'index': None
+    }
+
+    group_df['within_range'] = (group_df['bearing'] >= runway_heading - offset) & (group_df['bearing'] <= runway_heading + offset)
+
+    if not group_df['within_range'].unique()[0]:
+        return None
+
+    last_true_row = group_df[group_df['within_range']].iloc[-1]
+    last_true_index = group_df[group_df['within_range']].index[-1]
+
+    nearest['distance'] = 0
+    nearest['runway'] = runway
+    nearest['point'] = last_true_row
+    nearest['index'] = last_true_index
+    # Save the timestamp from the 'ts' field of the corresponding row
+    nearest['ts'] = last_true_row['ts']
+
+    return nearest
+
 def find_nearest_point(baseline_position: dict, filtered_df: pd.DataFrame):
     # Make sure filtered_df has numeric lat/lon
     df = filtered_df.copy()
@@ -430,6 +479,114 @@ def identify_landing_runway(df):
 
         # Add group to the results
         results.append(group_df)
+
+    # Concatenate the augmented group dataframes
+    df_with_runway = pd.concat(results).reset_index(drop=True)
+
+    # Create the smaller dataframe with basic info for each icao24 segment
+    basic_info_df = pd.DataFrame(basic_info_results)
+
+    # Concatenate the ILS segments (if any) into a single dataframe
+    df_segments_ils = pd.concat(segments_ils_results).reset_index(drop=True) if segments_ils_results else pd.DataFrame()
+
+    return df_with_runway, basic_info_df, df_segments_ils
+
+def identify_landing_runway_backwards(df):
+    results = []
+    basic_info_results = []
+    segments_ils_results = []  # List to collect the trajectory segments (ILS segments)
+
+    # Filter out unwanted trajectories
+    df = df[~df['trajectory'].isin(['departing', 'level'])]
+
+    # Group by icao24 and segment
+    grouped = df.groupby(['icao24', 'segment'])
+
+    for (icao24, segment), group_df in grouped:
+
+        # Get a representative timestamp from the group (using the first row)
+        rep_ts = group_df['ts'].iloc[0]
+        rep_date = datetime.datetime.utcfromtimestamp(rep_ts / 1000).strftime('%Y-%m-%d %Hh')
+
+
+        # Find the nearest point to the FAP position and to the threshold position.
+        nearest_thr = find_nearest_point(threshold_position, group_df)
+        nearest_fap = find_last_no_turning_point(group_df, nearest_thr)
+
+        if nearest_fap is None:
+            print(f'  icao24 {icao24} at ts {rep_ts} ({rep_date}): heading do not match')
+            continue # Nos el follem perque no esta prop del bearing esperat
+
+        # Ensure that the runways are the same
+        if nearest_fap['runway'] != nearest_thr['runway']:
+            print(f'  icao24 {icao24} at ts {rep_ts} ({rep_date}): runways do not match: '
+                  f'{nearest_fap["runway"]} != {nearest_thr["runway"]}')
+            continue
+
+        # Ensure that the found points are "close enough" to the FAP
+        if nearest_fap['distance'] > 700:  # [meters]
+            print(f'  icao24 {icao24} at ts {rep_ts} ({rep_date}): FAP distance too large: {nearest_fap["distance"]}')
+            continue
+
+        # Ensure that the found points are "close enough" to the THR
+        if nearest_thr['distance'] > 700:  # [meters]
+            print(f'  icao24 {icao24} at ts {rep_ts} ({rep_date}): THR distance too large: {nearest_thr["distance"]}')
+            continue
+
+        # Augment the group's dataframe with runway and index/timestamp info
+        group_df = group_df.copy()
+        group_df['runway_fap'] = nearest_fap['runway']
+        group_df['runway_thr'] = nearest_thr['runway']
+        group_df['idx_fap'] = nearest_fap['index']
+        group_df['idx_thr'] = nearest_thr['index']
+        group_df['ts_fap'] = nearest_fap['ts']
+        group_df['ts_thr'] = nearest_thr['ts']
+
+        # Compute and add delta_time to each row in the group
+        delta_time = (nearest_thr['ts'] - nearest_fap['ts']) / 1000
+        group_df['delta_time'] = delta_time
+
+        results.append(group_df)
+
+        # Extract coordinates for the nearest FAP and threshold df points
+        lat_fap = group_df.loc[nearest_fap['index'], 'lat_deg']
+        lon_fap = group_df.loc[nearest_fap['index'], 'lon_deg']
+        lat_thr = group_df.loc[nearest_thr['index'], 'lat_deg']
+        lon_thr = group_df.loc[nearest_thr['index'], 'lon_deg']
+
+        # Compute the distance between the nearest FAP point and the nearest threshold point
+        distance = haversine(lat_fap, lon_fap, lat_thr, lon_thr)
+
+        # Build the basic info dictionary for this icao24 segment
+        basic_info = {
+            'icao24': icao24,
+            'runway_fap': nearest_fap['runway'],
+            'idx_fap': nearest_fap['index'],
+            'idx_thr': nearest_thr['index'],
+            'ts_fap': nearest_fap['ts'],
+            'ts_thr': nearest_thr['ts'],
+            'delta_time': delta_time,
+            'lat_deg_fap': lat_fap,
+            'lon_deg_fap': lon_fap,
+            'lat_deg_thr': lat_thr,
+            'lon_deg_thr': lon_thr,
+            'distance_fap_to_thr': distance
+        }
+        basic_info_results.append(basic_info)
+
+        # Extract the ILS segment: the rows between the FAP and THR identified points.
+        # We first get their positional indexes in the group's dataframe.
+        try:
+            pos_fap = group_df.index.get_loc(nearest_fap['index'])
+            pos_thr = group_df.index.get_loc(nearest_thr['index'])
+        except Exception as e:
+            print(f"Error determining positions for icao24 {icao24}: {e}")
+            continue
+
+        start_pos = min(pos_fap, pos_thr)
+        end_pos = max(pos_fap, pos_thr) + 1  # +1 to include the endpoint
+        segment_ils = group_df.iloc[start_pos:end_pos]
+        segments_ils_results.append(segment_ils)
 
     # Concatenate the augmented group dataframes
     df_with_runway = pd.concat(results).reset_index(drop=True)
