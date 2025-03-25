@@ -3,7 +3,6 @@ import pandas as pd
 import joblib
 import os
 
-from anyio.lowlevel import checkpoint
 
 from tools_calculate import get_day_of_week
 from tools_filter import clean_dataframe_nulls, sort_dataframe, identify_landing_runway_scenario
